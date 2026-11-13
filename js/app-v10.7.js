@@ -23,25 +23,25 @@ function nextMondayIso(){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-const statusText={pending:'敺�Ⅱ隤�',confirmed:'撌脩Ⅱ隤�',rejected:'�芸���',cancelled:'撌脣�瘨�',leave:'隢见�'};
+const statusText={pending:'待確認',confirmed:'已確認',rejected:'未安排',cancelled:'已取消',leave:'請假'};
 
 // ---------- Public homepage / application ----------
 async function loadPublic(){
-  // �砍��寧��祇��折��砍�嚗䔶��齿�靘偦�����芰蒈�亥赤摰Ｚ��硔��
+  // 公告改為公關內部公告，不再提供首頁／未登入訪客讀取。
 }
 loadPublic();
 
 el('applyForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();const f=e.currentTarget,b=f.querySelector('button[type=submit]');b.disabled=true;text('applyStatus','��枂銝凌��');
+  e.preventDefault();const f=e.currentTarget,b=f.querySelector('button[type=submit]');b.disabled=true;text('applyStatus','送出中…');
   const x=Object.fromEntries(new FormData(f));
   const computedAge=ageFromBirthday(x.birthday);
-  if(!computedAge||computedAge<18){text('applyStatus','�� 隢讠Ⅱ隤滨��伐��唾����蝚血��拍鍂撌乩����摰𡁜僑朣～��');b.disabled=false;return}
+  if(!computedAge||computedAge<18){text('applyStatus','❌ 請確認生日，申請者需符合適用工作的法定年齡。');b.disabled=false;return}
   const {error}=await sb.from('applications').insert({
-    name:'�踹�隢株岷',nickname:x.nickname,birthday:x.birthday,age:computedAge,area:x.area,contact:x.contact,
+    name:'匿名諮詢',nickname:x.nickname,birthday:x.birthday,age:computedAge,area:x.area,contact:x.contact,
     instagram:x.instagram||null,experience:x.experience,
     availability:x.availability||null,note:x.note||null
   });
-  text('applyStatus',error?'�� ��枂憭望�嚗諹�蝔滚��滩岫��':'�� �唾��𣂼�嚗��蝝�蝡臬歇�嗅�鞈����');
+  text('applyStatus',error?'❌ 送出失敗，請稍後再試。':'✅ 申請成功！經紀端已收到資料。');
   if(!error)f.reset();b.disabled=false;
 });
 
@@ -51,7 +51,7 @@ async function talentPortalInit(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){renderTalentAuth();return}
   const {data:admin}=await sb.from('admin_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
-  if(admin){el('talentPortal').innerHTML=`<div class="portal-shell"><h1>�蹱糓�祇�撠��</h1><p>雿删𤌍�滨蒈�亦��舐恣��摱撣唾���</p><a class="btn btn-primary" href="admin.html">�滚�蝬梶�敺�蝱</a><button class="btn btn-outline" id="talentLogout">�餃枂</button></div>`;el('talentLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};return}
+  if(admin){el('talentPortal').innerHTML=`<div class="portal-shell"><h1>這是公關專區</h1><p>你目前登入的是管理員帳號。</p><a class="btn btn-primary" href="admin.html">前往經紀後台</a><button class="btn btn-outline" id="talentLogout">登出</button></div>`;el('talentLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};return}
   let {data:profile,error}=await sb.from('talents').select('*').eq('user_id',session.user.id).maybeSingle();
   if(error||!profile){renderNoProfile(session.user.email);return}
   if(profile.status==='paused'&&profile.paused_until&&profile.paused_until<=isoDay()){
@@ -73,13 +73,13 @@ async function talentAuthRequest(payload){
     body:JSON.stringify(payload)
   });
   const data=await res.json().catch(()=>({}));
-  if(!res.ok)throw new Error(data?.error||'�餃�憭望�');
+  if(!res.ok)throw new Error(data?.error||'登入失敗');
   return data;
 }
 
 async function talentLoginWithIdentifier(identifier,password){
   const data=await talentAuthRequest({action:'login',identifier,password});
-  if(!data?.session?.access_token||!data?.session?.refresh_token)throw new Error('�餃�憭望�');
+  if(!data?.session?.access_token||!data?.session?.refresh_token)throw new Error('登入失敗');
   const {error}=await sb.auth.setSession({
     access_token:data.session.access_token,
     refresh_token:data.session.refresh_token
@@ -95,34 +95,34 @@ function renderTalentAuth(msg=''){
   el('talentPortal').innerHTML=`
   <div class="portal-auth portal-auth-v79">
     <div class="portal-auth-brand"><img src="assets/lindao-emblem-transparent.png" alt=""><span>LIN DAO ENTERTAINMENT</span></div>
-    <div class="portal-intro"><p class="eyebrow">PRIVATE MEMBER ACCESS 繚 V10.45</p><h1>�祇�撠��</h1><p>撠�惇��摱�餃�����𣂼𥼚�准��䰻�讠号銵具����𡃏��衤犖鞈����</p></div>
-    <div class="auth-tabs"><button class="auth-tab active" data-mode="login">�餃�</button><button class="auth-tab" data-mode="signup">蝚砌�甈∟酉��</button></div>
+    <div class="portal-intro"><p class="eyebrow">PRIVATE MEMBER ACCESS · V10.45</p><h1>公關專區</h1><p>專屬會員登入。完成報班、查看班表、公告與個人資料。</p></div>
+    <div class="auth-tabs"><button class="auth-tab active" data-mode="login">登入</button><button class="auth-tab" data-mode="signup">第一次註冊</button></div>
     <div id="authBox"></div>
   </div>`;
   const show=mode=>{
     document.querySelectorAll('.auth-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
     el('authBox').innerHTML=mode==='login'
-    ? `<form id="talentLoginForm" class="form-card portal-form"><label>Email �碶蝙�刻��董��<input name="identifier" required autocomplete="username" placeholder="靘见�嚗鯴iaodao88 �� name@email.com"></label><small class="login-helper">Email��蝙�刻��董�罸��臭誑�餃�嚗䔶���閬���𥟇芋撘譌��</small><label>撖�Ⅳ<input type="password" name="password" required autocomplete="current-password"></label><button class="btn btn-primary">�餃��祇�撠��</button><p id="talentAuthStatus" class="form-status">${esc(msg)}</p></form>`
-    : `<form id="talentSignupForm" class="form-card portal-form"><label>�嘥�嚗𤩺黸蝔�<input name="nickname" maxlength="40" required></label><label>雿輻鍂��董��<input name="username" minlength="3" maxlength="20" required autocomplete="username" placeholder="3��20 雿滩㘚���撖怒��彍摮𨰜��. �� _"></label><small class="login-helper">銋见��舐凒�亦鍂�坔�讠�撣唾��餃�嚗䔶��臭誑蝜潛��� Email��</small><label>LINE嚗𤩺�璈�<input name="contact" maxlength="80" required></label><label>撅���啣�<input name="area" maxlength="40" placeholder="靘见�嚗𡁜蝱�梹��啣�"></label><label>Email<input type="email" name="email" required autocomplete="email"></label><label>閮剖�撖�Ⅳ<input type="password" name="password" minlength="8" required autocomplete="new-password"></label><label class="check"><input type="checkbox" required> �𤑳Ⅱ隤滚歇�娪��典極雿𦦵�瘜訫�撟湧翩嚗䔶蒂�峕�撠�董�蠘��嗵鍂�潛号�嗵恣����</label><button class="btn btn-primary">撱箇��祇�撣唾�</button><p id="talentAuthStatus" class="form-status"></p></form>`;
+    ? `<form id="talentLoginForm" class="form-card portal-form"><label>Email 或使用者帳號<input name="identifier" required autocomplete="username" placeholder="例如：xiaodao88 或 name@email.com"></label><small class="login-helper">Email、使用者帳號都可以登入，不需要切換模式。</small><label>密碼<input type="password" name="password" required autocomplete="current-password"></label><button class="btn btn-primary">登入公關專區</button><p id="talentAuthStatus" class="form-status">${esc(msg)}</p></form>`
+    : `<form id="talentSignupForm" class="form-card portal-form"><label>藝名／暱稱<input name="nickname" maxlength="40" required></label><label>使用者帳號<input name="username" minlength="3" maxlength="20" required autocomplete="username" placeholder="3–20 位英文小寫、數字、. 或 _"></label><small class="login-helper">之後可直接用這個短帳號登入，也可以繼續用 Email。</small><label>LINE／手機<input name="contact" maxlength="80" required></label><label>居住地區<input name="area" maxlength="40" placeholder="例如：台北／新北"></label><label>Email<input type="email" name="email" required autocomplete="email"></label><label>設定密碼<input type="password" name="password" minlength="8" required autocomplete="new-password"></label><label class="check"><input type="checkbox" required> 我確認已達適用工作的法定年齡，並同意將帳號資料用於班務管理。</label><button class="btn btn-primary">建立公關帳號</button><p id="talentAuthStatus" class="form-status"></p></form>`;
     if(mode==='login'){
-      el('talentLoginForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');const x=Object.fromEntries(new FormData(f));b.disabled=true;text('talentAuthStatus','�餃�銝凌��');try{await talentLoginWithIdentifier(x.identifier,x.password);location.reload()}catch(err){console.error(err);text('talentAuthStatus','�� �餃�憭望�嚗諹�蝣箄�雿輻鍂��董���Email ���蝣潦��');b.disabled=false}};
+      el('talentLoginForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');const x=Object.fromEntries(new FormData(f));b.disabled=true;text('talentAuthStatus','登入中…');try{await talentLoginWithIdentifier(x.identifier,x.password);location.reload()}catch(err){console.error(err);text('talentAuthStatus','❌ 登入失敗，請確認使用者帳號／Email 與密碼。');b.disabled=false}};
     }else{
-      el('talentSignupForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');b.disabled=true;text('talentAuthStatus','撱箇�撣唾�銝凌��');const x=Object.fromEntries(new FormData(f));x.username=String(x.username||'').trim().toLowerCase();if(!validTalentUsername(x.username)){text('talentAuthStatus','�� 雿輻鍂��董�罸��� 3��20 雿滩㘚���撖怒��彍摮𨰜��. �� _');b.disabled=false;return}try{const chk=await talentAuthRequest({action:'check_username',username:x.username});if(!chk.available){text('talentAuthStatus','�� �坔�衤蝙�刻��董�笔歇�劐犖雿輻鍂嚗諹��𥕢��卝��');b.disabled=false;return}}catch(err){text('talentAuthStatus','�� �急��⊥�蝣箄�雿輻鍂��董���隢讠�敺��閰艾��');b.disabled=false;return}const {data,error}=await sb.auth.signUp({email:x.email,password:x.password,options:{data:{nickname:x.nickname,username:x.username,contact:x.contact,area:x.area||''}}});if(error){text('talentAuthStatus','�� 閮餃�憭望�嚗�'+error.message);b.disabled=false;return}if(data.session){text('talentAuthStatus','�� 撣唾�撱箇��𣂼�嚗峕迤�券�脣��祇�撠����');setTimeout(()=>location.reload(),700)}else{text('talentAuthStatus','�� 撣唾�撌脣遣蝡卝����� Email 靽∠拳摰峕�撽𡑒�嚗���其蝙�刻��董��� Email �餃���');f.reset()}b.disabled=false};
+      el('talentSignupForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');b.disabled=true;text('talentAuthStatus','建立帳號中…');const x=Object.fromEntries(new FormData(f));x.username=String(x.username||'').trim().toLowerCase();if(!validTalentUsername(x.username)){text('talentAuthStatus','❌ 使用者帳號需為 3–20 位英文小寫、數字、. 或 _');b.disabled=false;return}try{const chk=await talentAuthRequest({action:'check_username',username:x.username});if(!chk.available){text('talentAuthStatus','❌ 這個使用者帳號已有人使用，請換一個。');b.disabled=false;return}}catch(err){text('talentAuthStatus','❌ 暫時無法確認使用者帳號，請稍後再試。');b.disabled=false;return}const {data,error}=await sb.auth.signUp({email:x.email,password:x.password,options:{data:{nickname:x.nickname,username:x.username,contact:x.contact,area:x.area||''}}});if(error){text('talentAuthStatus','❌ 註冊失敗：'+error.message);b.disabled=false;return}if(data.session){text('talentAuthStatus','✅ 帳號建立成功，正在進入公關專區…');setTimeout(()=>location.reload(),700)}else{text('talentAuthStatus','✅ 帳號已建立。請到 Email 信箱完成驗證，再用使用者帳號或 Email 登入。');f.reset()}b.disabled=false};
     }
   };
   document.querySelectorAll('.auth-tab').forEach(b=>b.onclick=()=>show(b.dataset.mode));
   show('login');
 }
 function renderNoProfile(email){
-  el('talentPortal').innerHTML=`<div class="portal-shell"><h1>撣唾��嘥��碶葉</h1><p>${esc(email)}</p><p>�桀�撠𡁏𧊋撱箇��祇�鞈��嚗諹��齿鰵�餃�銝�甈∴��乩�憿舐內甇斤𧞄�ｇ�隢贝�蝯∠�蝝���</p><button class="btn btn-outline" id="talentLogout">�餃枂</button></div>`;
+  el('talentPortal').innerHTML=`<div class="portal-shell"><h1>帳號初始化中</h1><p>${esc(email)}</p><p>目前尚未建立公關資料，請重新登入一次；若仍顯示此畫面，請聯絡經紀。</p><button class="btn btn-outline" id="talentLogout">登出</button></div>`;
   el('talentLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};
 }
 async function renderTalentDashboard(p,email){
   const {data:venues}=await sb.from('venues').select('name').eq('is_active',true).order('name');
   const {data:myBookings}=await sb.from('bookings').select('*').eq('user_id',p.user_id).order('booking_date',{ascending:true}).order('start_time');
-  const normalizedStatus={active:'active',paused:'paused',new:'new',left:'left','���銝�':'active','銝𠰴㨃銝�':'active','�怠�':'paused','隡烐�銝�':'paused','敺�祟��':'new','敺��蝝�撖拇瓲':'new','撌脤𣪧��':'left','撌脖���':'left'}[p.status]||p.status;
+  const normalizedStatus={active:'active',paused:'paused',new:'new',left:'left','合作中':'active','上卡中':'active','暫停':'paused','休檔中':'paused','待審核':'new','待經紀審核':'new','已離開':'left','已下卡':'left'}[p.status]||p.status;
   const approved=normalizedStatus==='active';
-  const profileStatus={new:'敺��蝝�撖拇瓲',active:'銝𠰴㨃銝�',paused:'隡烐�銝�',left:'撌脖���'}[normalizedStatus]||normalizedStatus;
+  const profileStatus={new:'待經紀審核',active:'上卡中',paused:'休檔中',left:'已下卡'}[normalizedStatus]||normalizedStatus;
   const rows=myBookings||[];
   const today=isoDay();
   const monday=mondayOf(today);
@@ -135,18 +135,18 @@ async function renderTalentDashboard(p,email){
   const confirmedCount=weekRows.filter(x=>x.status==='confirmed').length;
   const pendingCount=weekRows.filter(x=>x.status==='pending').length;
   const nextBooking=rows.find(x=>x.booking_date>=today&&!['cancelled','rejected','leave'].includes(x.status));
-  const nextText=nextBooking?`${twDate(nextBooking.booking_date)} 繚 ${esc(nextBooking.start_time?.slice(0,5)||'')}`:'撠𡁶��剛”';
+  const nextText=nextBooking?`${twDate(nextBooking.booking_date)} · ${esc(nextBooking.start_time?.slice(0,5)||'')}`:'尚無班表';
   const taipeiHour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',hour:'2-digit',hour12:false}).format(new Date()));
-  const timeGreeting=taipeiHour>=5&&taipeiHour<11?'�拙�':taipeiHour>=11&&taipeiHour<18?'���':'�𡁜�';
+  const timeGreeting=taipeiHour>=5&&taipeiHour<11?'早安':taipeiHour>=11&&taipeiHour<18?'午安':'晚安';
   const todayRows=rows.filter(x=>x.booking_date===today&&!['cancelled','rejected'].includes(x.status));
   const todayConfirmed=todayRows.filter(x=>x.status==='confirmed');
   const todayLeave=todayRows.filter(x=>x.status==='leave');
-  const todayStatusText=todayConfirmed.length?`隞𠰴予 ${esc(todayConfirmed[0].start_time?.slice(0,5)||'')} �厩号`:todayLeave.length?'隞𠰴予撌脰���':'隞𠰴予瘝埝��垍号';
+  const todayStatusText=todayConfirmed.length?`今天 ${esc(todayConfirmed[0].start_time?.slice(0,5)||'')} 有班`:todayLeave.length?'今天已請假':'今天沒有排班';
   const memberPortrait=p.avatar_portrait_url||p.avatar_url||'';
   const memberCode=String(p.id||'').replace(/-/g,'').slice(0,8).toUpperCase()||'PRIVATE';
   const memberPortraitMarkup=memberPortrait
-    ? `<img src="${esc(memberPortrait)}" alt="${esc(p.nickname||'�祇�')} ��摱敶Ｚ情��">`
-    : `<div class="vip-portrait-fallback"><span>��</span><b>${esc((p.nickname||'?').slice(0,1))}</b><small>PRIVATE MEMBER</small></div>`;
+    ? `<img src="${esc(memberPortrait)}" alt="${esc(p.nickname||'公關')} 會員形象照">`
+    : `<div class="vip-portrait-fallback"><span>✦</span><b>${esc((p.nickname||'?').slice(0,1))}</b><small>PRIVATE MEMBER</small></div>`;
 
   el('talentPortal').innerHTML=`
   <div class="portal-shell portal-v79">
@@ -155,31 +155,31 @@ async function renderTalentDashboard(p,email){
         <span class="lux-orb orb-a"></span>
         <span class="lux-orb orb-b"></span>
         <span class="lux-orb orb-c"></span>
-        <span class="lux-star star-a">��</span>
-        <span class="lux-star star-b">��</span>
-        <span class="lux-star star-c">��</span>
+        <span class="lux-star star-a">✦</span>
+        <span class="lux-star star-b">✧</span>
+        <span class="lux-star star-c">◇</span>
         <span class="lux-ring ring-a"></span>
         <span class="lux-ring ring-b"></span>
-        <span class="lux-petal petal-a">��</span>
-        <span class="lux-petal petal-b">��</span>
-        <span class="lux-petal petal-c">��</span>
-        <span class="lux-petal petal-d">��</span>
+        <span class="lux-petal petal-a">♡</span>
+        <span class="lux-petal petal-b">✦</span>
+        <span class="lux-petal petal-c">◇</span>
+        <span class="lux-petal petal-d">✧</span>
         <span class="lux-shine-line"></span>
       </div>
       <div class="member-command-main">
         <div class="member-command-brand">
           <span class="member-command-line"></span>
-          <p>LIN DAO 繚 PRIVATE MEMBER</p>
-          <span class="member-command-sparkle">��</span>
+          <p>LIN DAO · PRIVATE MEMBER</p>
+          <span class="member-command-sparkle">✦</span>
         </div>
         <div class="member-soft-orbit orbit-one"></div>
         <div class="member-soft-orbit orbit-two"></div>
-        <p class="eyebrow">TALENT PORTAL 繚 V10.55</p>
+        <p class="eyebrow">TALENT PORTAL · V10.55</p>
         <div class="member-name-row">
           <div>
-            <span class="member-welcome">PRIVATE MEMBER 繚 ${timeGreeting} ��</span>
-            <h1>${esc(p.nickname||'�芾身摰𡁏黸蝔�')}<span class="fairy-name-suffix">撠譍�憟喉�${timeGreeting}</span></h1>
-            <p class="member-soft-caption">隞𠰴予銋毺��芸楛��郊隤選�瞍�漁�啣��鞉�銝�隞嗡��� ��</p>
+            <span class="member-welcome">PRIVATE MEMBER · ${timeGreeting} ✦</span>
+            <h1>${esc(p.nickname||'未設定暱稱')}<span class="fairy-name-suffix">小仙女，${timeGreeting}</span></h1>
+            <p class="member-soft-caption">今天也照自己的步調，漂亮地完成每一件事。 ♡</p>
             <div class="member-glance">
               <div><small>TODAY</small><strong>${todayStatusText}</strong></div>
               <span></span>
@@ -191,92 +191,92 @@ async function renderTalentDashboard(p,email){
         ${['active','paused'].includes(normalizedStatus)?`
         <div class="talent-self-status member-status-lux" data-current="${esc(normalizedStatus)}">
           <button type="button" class="talent-self-status-btn status-live ${normalizedStatus==='active'?'is-current':''}" data-status="active" aria-pressed="${normalizedStatus==='active'}">
-            <span class="talent-status-dot"></span><span>銝𠰴㨃銝�</span>
+            <span class="talent-status-dot"></span><span>上卡中</span>
           </button>
           <span class="talent-status-slash">/</span>
           <button type="button" class="talent-self-status-btn status-pause ${normalizedStatus==='paused'?'is-current':''}" data-status="paused" aria-pressed="${normalizedStatus==='paused'}">
-            <span class="talent-status-dot"></span><span>隡烐�銝�</span>
+            <span class="talent-status-dot"></span><span>休檔中</span>
           </button>
         </div>
-        <p class="talent-self-status-note">${normalizedStatus==='paused'&&p.paused_until?`隡烐��喃��曹� ${esc(p.paused_until)}嚚𦦵訜憭抵䌊�閙�敺拐��∩葉`:'�桀��舀迤撣詨𥼚�哨�隡烐����蝥��銝钅�曹�'}</p>
+        <p class="talent-self-status-note">${normalizedStatus==='paused'&&p.paused_until?`休檔至下週一 ${esc(p.paused_until)}｜當天自動恢復上卡中`:'目前可正常報班｜休檔會持續到下週一'}</p>
         `:`<div class="talent-profile-status status-${esc(normalizedStatus)}">${esc(profileStatus)}</div>`}
       </div>
 
-      <aside class="member-vip-portrait" aria-label="撠𦠜旨��摱霅睃³���">
+      <aside class="member-vip-portrait" aria-label="尊榮會員識別卡">
         <div class="vip-portrait-frame">
           <div class="vip-portrait-shine"></div>
           <div class="vip-portrait-image">${memberPortraitMarkup}</div>
           <div class="vip-portrait-status ${normalizedStatus==='active'?'is-live':normalizedStatus==='paused'?'is-paused':''}">
-            <span></span>${normalizedStatus==='active'?'銝𠰴㨃銝�':normalizedStatus==='paused'?'隡烐�銝�':esc(profileStatus)}
+            <span></span>${normalizedStatus==='active'?'上卡中':normalizedStatus==='paused'?'休檔中':esc(profileStatus)}
           </div>
         </div>
         <div class="vip-member-plaque">
-          <p>LIN DAO 繚 PRIVATE MEMBER</p>
-          <strong>${esc(p.nickname||'�芾身摰𡁏黸蝔�')} 撠譍�憟�</strong>
+          <p>LIN DAO · PRIVATE MEMBER</p>
+          <strong>${esc(p.nickname||'未設定暱稱')} 小仙女</strong>
           <div><span>MEMBER NO.</span><b>${memberCode}</b></div>
         </div>
       </aside>
 
-      <button class="member-logout" id="talentLogout" type="button">�餃枂 ��</button>
+      <button class="member-logout" id="talentLogout" type="button">登出 ↗</button>
     </section>
 
-    <nav class="member-nav" aria-label="�祇�撠��撠舘汗">
+    <nav class="member-nav" aria-label="公關專區導覽">
       <button class="profile-tab active" data-section="schedule">
-        <span>01</span><div><strong>�剖�銝剖� <i>��</i></strong><small>�梁号 繚 �𤑳��剛” 繚 �砍�</small></div>
+        <span>01</span><div><strong>班務中心 <i>✦</i></strong><small>報班 · 我的班表 · 公告</small></div>
       </button>
       <button class="profile-tab" data-section="profile">
-        <span>02</span><div><strong>�衤犖鞈�� <i>��</i></strong><small>�舐窗�孵� 繚 �箸𧋦鞈��</small></div>
+        <span>02</span><div><strong>個人資料 <i>◇</i></strong><small>聯絡方式 · 基本資料</small></div>
       </button>
       <button class="profile-tab" data-section="payroll">
-        <span>03</span><div><strong>�芾��� <i>嚗�</i></strong><small>瘥誯�梯𢞁鞈� 繚 瘥𤩺𠯫蝭��� 繚 ��狡</small></div>
+        <span>03</span><div><strong>薪資單 <i>＄</i></strong><small>每週薪資 · 每日節數 · 扣款</small></div>
       </button>
       <button class="profile-tab" data-section="hotelcards">
-        <span>04</span><div><strong>�鍦�銝𠹺��∠��� <i>��</i></strong><small>�曆��∪�摰� 繚 �交��詨‵</small></div>
+        <span>04</span><div><strong>酒店上下卡紀錄 <i>⌁</i></strong><small>曾上卡店家 · 日期選填</small></div>
       </button>
     </nav>
 
     ${approved?`<a class="member-announcement-ticker" id="memberAnnouncementTicker" href="announcements.html">
-      <span class="ticker-label"><b>��</b> �砍�</span>
-      <span class="ticker-viewport"><span class="ticker-track" id="tickerTrack">�砍�霈��碶葉��</span></span>
-      <span class="ticker-more">�亦��券� ��</span>
+      <span class="ticker-label"><b>✦</b> 公告</span>
+      <span class="ticker-viewport"><span class="ticker-track" id="tickerTrack">公告讀取中…</span></span>
+      <span class="ticker-more">查看全部 ↗</span>
     </a>`:''}
 
     <div id="talentScheduleSection" class="member-section">
       ${approved?`
       <div class="member-dashboard-grid member-booking-only">
         <div class="member-booking-column">${bookingComposer(p,venues||[])}</div>
-      </div>`:`<div class="approval-box member-pause-box"><strong>${normalizedStatus==='paused'?'�桀�隡烐�銝�':'撣唾��桀�撠𡁏𧊋�𧢲𦆮�梁号'}</strong><p>${normalizedStatus==='paused'?'隡烐��罸��怠��梁号嚗𥕦��𠺶�䔶��∩葉�滚��喳虾�Ｗ儔��':'蝑匧�蝬梶�撖拇瓲�𡁻�敺䕘�撠勗虾隞仿�憪见𥼚�剛��亦��砍���'}</p></div>`}
+      </div>`:`<div class="approval-box member-pause-box"><strong>${normalizedStatus==='paused'?'目前休檔中':'帳號目前尚未開放報班'}</strong><p>${normalizedStatus==='paused'?'休檔期間暫停報班；切回「上卡中」後即可恢復。':'等待經紀審核通過後，就可以開始報班與查看公告。'}</p></div>`}
 
       <section class="my-schedule member-schedule-panel">
         <div class="member-section-heading">
-          <div><p class="eyebrow">MY SCHEDULE ��</p><h2>�𤑳��剛” <span class="soft-heading-mark">��</span></h2></div>
-          <span class="member-count">${currentWeekDisplayRows.length+nextWeekRows.length} 蝑�＊蝷箔葉</span>
+          <div><p class="eyebrow">MY SCHEDULE ♡</p><h2>我的班表 <span class="soft-heading-mark">✦</span></h2></div>
+          <span class="member-count">${currentWeekDisplayRows.length+nextWeekRows.length} 筆顯示中</span>
         </div>
         <div class="schedule-week-summary">
-          <div><span>�祇�勗歇�梁号</span><strong>${weekRows.length}</strong><small>憭�</small></div>
+          <div><span>本週已報班</span><strong>${weekRows.length}</strong><small>天</small></div>
           <i></i>
-          <div><span>撌脩Ⅱ隤�</span><strong>${confirmedCount}</strong><small>憭�</small></div>
+          <div><span>已確認</span><strong>${confirmedCount}</strong><small>天</small></div>
           <i></i>
-          <div><span>敺�Ⅱ隤�</span><strong>${pendingCount}</strong><small>憭�</small></div>
+          <div><span>待確認</span><strong>${pendingCount}</strong><small>天</small></div>
         </div>
         <div class="schedule-refresh-note">
-          <span>��</span>
-          <div><strong>瘥誯�曹��芸��湔鰵�剛”</strong><small>銝𢠃�梁号銵冽��芸��梯�嚗𥕢��勗歇�梁��凋��舀��齿䰻�卝��</small></div>
+          <span>✦</span>
+          <div><strong>每週一自動更新班表</strong><small>上週班表會自動隱藏；下週已報的班仍可提前查看。</small></div>
         </div>
 
         <div id="myBookingList" class="member-booking-list member-booking-week-groups">
           <section class="booking-week-group">
             <div class="booking-week-head">
-              <div><small>THIS WEEK</small><strong>�祇�梁号銵�</strong></div>
-              <span>${esc(monday)} 嚚� ${esc(sunday)}</span>
+              <div><small>THIS WEEK</small><strong>本週班表</strong></div>
+              <span>${esc(monday)} ～ ${esc(sunday)}</span>
             </div>
             ${renderMyBookings(currentWeekDisplayRows)}
           </section>
 
           <section class="booking-week-group next-week">
             <div class="booking-week-head">
-              <div><small>NEXT WEEK</small><strong>銝钅�梁号銵�</strong></div>
-              <span>${esc(nextMonday)} 嚚� ${esc(nextSunday)}</span>
+              <div><small>NEXT WEEK</small><strong>下週班表</strong></div>
+              <span>${esc(nextMonday)} ～ ${esc(nextSunday)}</span>
             </div>
             ${renderMyBookings(nextWeekRows)}
           </section>
@@ -289,10 +289,10 @@ async function renderTalentDashboard(p,email){
       ${profileEditor(p,email)}
     </div>
     <div id="talentPayrollSection" class="member-section" style="display:none">
-      <div class="member-loading-card">�芾��株��碶葉��</div>
+      <div class="member-loading-card">薪資單讀取中…</div>
     </div>
     <div id="talentHotelCardsSection" class="member-section" style="display:none">
-      <div class="member-loading-card">�鍦�銝𠹺��∠�����碶葉��</div>
+      <div class="member-loading-card">酒店上下卡紀錄讀取中…</div>
     </div>
   </div>`;
 
@@ -320,7 +320,7 @@ async function renderTalentDashboard(p,email){
 
 
 const money=v=>'$'+Number(v||0).toLocaleString('zh-TW',{maximumFractionDigits:0});
-const payrollDays=[['mon_sections','銝�'],['tue_sections','鈭�'],['wed_sections','銝�'],['thu_sections','��'],['fri_sections','鈭�'],['sat_sections','��'],['sun_sections','��']];
+const payrollDays=[['mon_sections','一'],['tue_sections','二'],['wed_sections','三'],['thu_sections','四'],['fri_sections','五'],['sat_sections','六'],['sun_sections','日']];
 function payrollCalc(x){
   const total=payrollDays.reduce((s,[k])=>s+Number(x[k]||0),0),rate=Number(x.section_rate||0),gross=total*rate;
   const deductionKeys=['tax_amount','cleaning_fee','laundry_fee','misc_fee','makeup_fee','advance_amount'];
@@ -329,31 +329,31 @@ function payrollCalc(x){
 }
 async function renderTalentPayroll(p){
   const host=el('talentPayrollSection');if(!host)return;
-  host.innerHTML='<div class="member-loading-card">�芾��株��碶葉��</div>';
+  host.innerHTML='<div class="member-loading-card">薪資單讀取中…</div>';
   const {data,error}=await sb.from('payrolls').select('*').eq('talent_id',p.id).eq('is_published',true).order('week_start',{ascending:false});
-  if(error){host.innerHTML='<div class="member-setup-card"><strong>�芾��桀��賢��芸���</strong><p>隢讠眏蝞∠��∠Ⅱ隤� Supabase �芾�鞈��銵刻�甈𢠃�閮剖���</p></div>';return}
+  if(error){host.innerHTML='<div class="member-setup-card"><strong>薪資單功能尚未啟用</strong><p>請由管理員確認 Supabase 薪資資料表與權限設定。</p></div>';return}
   const rows=data||[];
-  host.innerHTML=`<section class="payroll-page"><div class="member-section-heading"><div><p class="eyebrow">WEEKLY PAYROLL ��</p><h2>�𤑳��芾���</h2><p class="panel-note">瘥誯�梁�蝞梹�暺鮋�隞颱�蝑�䰻�见��湔�蝝�</p></div><span class="member-count">${rows.length} 隞�</span></div><div class="payroll-compact-list">${rows.length?rows.map((x)=>renderPayrollSlip(x,false)).join(''):'<div class="member-empty-lux"><strong>�桀�����匧歇�澆���𢞁鞈�鱓</strong><p>蝬梶�蝣箄�銝衣䔄撣��嚗峕�憿舐內�券�躰ㄐ��</p></div>'}</div></section>`;
-  host.querySelectorAll('.payroll-slip-top,.payroll-history-toggle').forEach(b=>b.onclick=()=>{const slip=b.closest('.payroll-slip'),d=slip.querySelector('.payroll-slip-body'),t=slip.querySelector('.payroll-history-toggle');d.hidden=!d.hidden;slip.classList.toggle('is-open',!d.hidden);if(t)t.textContent=d.hidden?'�亦��𡒊敦 嚗�':'�嗉絲�𡒊敦 嚗�'});
+  host.innerHTML=`<section class="payroll-page"><div class="member-section-heading"><div><p class="eyebrow">WEEKLY PAYROLL ✦</p><h2>我的薪資單</h2><p class="panel-note">每週結算｜點選任一筆查看完整明細</p></div><span class="member-count">${rows.length} 份</span></div><div class="payroll-compact-list">${rows.length?rows.map((x)=>renderPayrollSlip(x,false)).join(''):'<div class="member-empty-lux"><strong>目前還沒有已發布的薪資單</strong><p>經紀確認並發布後，會顯示在這裡。</p></div>'}</div></section>`;
+  host.querySelectorAll('.payroll-slip-top,.payroll-history-toggle').forEach(b=>b.onclick=()=>{const slip=b.closest('.payroll-slip'),d=slip.querySelector('.payroll-slip-body'),t=slip.querySelector('.payroll-history-toggle');d.hidden=!d.hidden;slip.classList.toggle('is-open',!d.hidden);if(t)t.textContent=d.hidden?'查看明細 ＋':'收起明細 －'});
 }
 function renderPayrollSlip(x,open=false){
-  const c=payrollCalc(x),start=x.week_start,end=addDaysIso(start,6),ded=[['蝔��',x.tax_amount],['皜��鞎�',x.cleaning_fee],['瘣𡑒﹝鞎�',x.laundry_fee],['�𨀣𣈲',x.misc_fee],['憒嗪垣',x.makeup_fee],['�鞉𣈲',x.advance_amount]];
-  return `<article class="payroll-slip"><div class="payroll-slip-top" role="button" tabindex="0"><div class="payroll-summary-main"><small>PAYROLL 繚 ${esc(x.venue||'�芸‵摨堒�')}</small><h3>${esc(start)} �� ${esc(end)}</h3><span>${c.total} 蝭� 繚 ${x.is_published?'撌脩�蝞�':'敺��蝞�'}</span></div><div class="payroll-net"><span>撖阡�</span><strong>${money(c.net)}</strong><em>��</em></div></div><div class="payroll-slip-body" hidden><div class="payroll-core"><div><span>摨堒�</span><b>${esc(x.venue||'��')}</b></div><div><span>�嘥�</span><b>${esc(x.nickname||'��')}</b></div><div><span>蝮賜���</span><b>${c.total} 蝭�</b></div><div><span>蝭���</span><b>${money(c.rate)} / 蝭�</b></div></div><div class="payroll-days">${payrollDays.map(([k,l],idx)=>`<div><small>��${l}</small><span>${twDate(addDaysIso(start,idx)).replace(/��./,'')}</span><strong>${Number(x[k]||0)}<i>蝭�</i></strong></div>`).join('')}</div><div class="payroll-math"><div><span>蝭��貉𢞁鞈�</span><b>${c.total} � ${money(c.rate)}</b><strong>${money(c.gross)}</strong></div><div class="payroll-deductions"><p>��狡�𡒊敦</p>${ded.map(([l,v])=>`<div><span>${l}</span><b>�� ${money(v)}</b></div>`).join('')}<div class="deduction-total"><span>��狡���</span><b>�� ${money(c.deductions)}</b></div></div><div class="payroll-final"><span>撖阡��芾�</span><strong>${money(c.net)}</strong></div></div>${x.note?`<p class="payroll-note">�躰酉嚚�${esc(x.note)}</p>`:''}</div><button class="payroll-history-toggle" type="button">�亦��𡒊敦 嚗�</button></article>`;
+  const c=payrollCalc(x),start=x.week_start,end=addDaysIso(start,6),ded=[['稅金',x.tax_amount],['清潔費',x.cleaning_fee],['洗衣費',x.laundry_fee],['雜支',x.misc_fee],['妝髮',x.makeup_fee],['預支',x.advance_amount]];
+  return `<article class="payroll-slip"><div class="payroll-slip-top" role="button" tabindex="0"><div class="payroll-summary-main"><small>PAYROLL · ${esc(x.venue||'未填店名')}</small><h3>${esc(start)} — ${esc(end)}</h3><span>${c.total} 節 · ${x.is_published?'已結算':'待結算'}</span></div><div class="payroll-net"><span>實領</span><strong>${money(c.net)}</strong><em>⌄</em></div></div><div class="payroll-slip-body" hidden><div class="payroll-core"><div><span>店名</span><b>${esc(x.venue||'—')}</b></div><div><span>藝名</span><b>${esc(x.nickname||'—')}</b></div><div><span>總節數</span><b>${c.total} 節</b></div><div><span>節薪</span><b>${money(c.rate)} / 節</b></div></div><div class="payroll-days">${payrollDays.map(([k,l],idx)=>`<div><small>週${l}</small><span>${twDate(addDaysIso(start,idx)).replace(/週./,'')}</span><strong>${Number(x[k]||0)}<i>節</i></strong></div>`).join('')}</div><div class="payroll-math"><div><span>節數薪資</span><b>${c.total} × ${money(c.rate)}</b><strong>${money(c.gross)}</strong></div><div class="payroll-deductions"><p>扣款明細</p>${ded.map(([l,v])=>`<div><span>${l}</span><b>− ${money(v)}</b></div>`).join('')}<div class="deduction-total"><span>扣款合計</span><b>− ${money(c.deductions)}</b></div></div><div class="payroll-final"><span>實際薪資</span><strong>${money(c.net)}</strong></div></div>${x.note?`<p class="payroll-note">備註｜${esc(x.note)}</p>`:''}</div><button class="payroll-history-toggle" type="button">查看明細 ＋</button></article>`;
 }
 async function renderTalentHotelCards(p){
   const host=el('talentHotelCardsSection');if(!host)return;
-  host.innerHTML='<div class="member-loading-card">�鍦�銝𠹺��∠�����碶葉��</div>';
+  host.innerHTML='<div class="member-loading-card">酒店上下卡紀錄讀取中…</div>';
   const {data,error}=await sb.from('hotel_card_records').select('*').eq('talent_id',p.id).order('created_at',{ascending:false});
-  if(error){host.innerHTML='<div class="member-setup-card"><strong>�鍦�蝝�����賢��芸���</strong><p>隢讠眏蝞∠��∠Ⅱ隤� Supabase �芾�鞈��銵刻�甈𢠃�閮剖���</p></div>';return}
+  if(error){host.innerHTML='<div class="member-setup-card"><strong>酒店紀錄功能尚未啟用</strong><p>請由管理員確認 Supabase 薪資資料表與權限設定。</p></div>';return}
   const rows=(data||[]).slice().sort((a,b)=>{
-    const activeA=a.status==='銝𠰴㨃銝�'?0:1;
-    const activeB=b.status==='銝𠰴㨃銝�'?0:1;
+    const activeA=a.status==='上卡中'?0:1;
+    const activeB=b.status==='上卡中'?0:1;
     if(activeA!==activeB)return activeA-activeB;
     const dateA=String(a.card_on_date||a.created_at||'');
     const dateB=String(b.card_on_date||b.created_at||'');
     return dateB.localeCompare(dateA);
   });
-  host.innerHTML=`<section class="hotel-record-page"><div class="member-section-heading"><div><p class="eyebrow">PRIVATE CAREER ARCHIVE</p><h2>�鍦�銝𠹺��∠���</h2><p class="panel-note">銝𠰴㨃銝剔���������蔭���甇瑕蟮蝝�����交��鍦���</p></div><span class="member-count">${rows.length} 蝑�</span></div><div class="hotel-record-grid">${rows.map((x,i)=>`<article class="hotel-record-card hotel-status-${esc((x.status||'record').replace(/\s+/g,'-'))}"><div class="hotel-card-index">${String(i+1).padStart(2,'0')}</div><div class="hotel-card-top"><div class="hotel-record-mark"><span>��</span></div><div class="hotel-card-title"><small>LIN DAO 繚 PRIVATE RECORD</small><h3>${esc(x.venue)}</h3></div><span class="hotel-record-status">${esc(x.status||'�曆���')}</span></div><div class="hotel-record-meta"><div><span>銝𠰴㨃�交�</span><strong>${esc(x.card_on_date||'�芰���')}</strong></div><i></i><div><span>銝见㨃�交�</span><strong>${esc(x.card_off_date||'�芰���')}</strong></div></div>${x.note?`<div class="hotel-record-note"><span>PRIVATE NOTE</span><p>${esc(x.note)}</p></div>`:''}<div class="hotel-card-signature"><span>LIN DAO ENTERTAINMENT</span><b>PRIVATE ARCHIVE</b></div></article>`).join('')||'<div class="member-empty-lux"><strong>�桀�瘝埝��鍦�銝𠹺��∠���</strong><p>蝬梶��啣��曆��∪�摰嗅���＊蝷箏銁�躰ㄐ��</p></div>'}</div></section>`;
+  host.innerHTML=`<section class="hotel-record-page"><div class="member-section-heading"><div><p class="eyebrow">PRIVATE CAREER ARCHIVE</p><h2>酒店上下卡紀錄</h2><p class="panel-note">上卡中的合作會優先置頂，歷史紀錄依日期排序。</p></div><span class="member-count">${rows.length} 筆</span></div><div class="hotel-record-grid">${rows.map((x,i)=>`<article class="hotel-record-card hotel-status-${esc((x.status||'record').replace(/\s+/g,'-'))}"><div class="hotel-card-index">${String(i+1).padStart(2,'0')}</div><div class="hotel-card-top"><div class="hotel-record-mark"><span>✦</span></div><div class="hotel-card-title"><small>LIN DAO · PRIVATE RECORD</small><h3>${esc(x.venue)}</h3></div><span class="hotel-record-status">${esc(x.status||'曾上卡')}</span></div><div class="hotel-record-meta"><div><span>上卡日期</span><strong>${esc(x.card_on_date||'未紀錄')}</strong></div><i></i><div><span>下卡日期</span><strong>${esc(x.card_off_date||'未紀錄')}</strong></div></div>${x.note?`<div class="hotel-record-note"><span>PRIVATE NOTE</span><p>${esc(x.note)}</p></div>`:''}<div class="hotel-card-signature"><span>LIN DAO ENTERTAINMENT</span><b>PRIVATE ARCHIVE</b></div></article>`).join('')||'<div class="member-empty-lux"><strong>目前沒有酒店上下卡紀錄</strong><p>經紀新增曾上卡店家後會顯示在這裡。</p></div>'}</div></section>`;
 }
 
 async function bindTalentSelfStatus(p,email){
@@ -361,16 +361,16 @@ async function bindTalentSelfStatus(p,email){
   if(!root)return;
   root.querySelectorAll('.talent-self-status-btn').forEach(btn=>btn.onclick=async()=>{
     const next=btn.dataset.status;
-    const current={active:'active',paused:'paused','���銝�':'active','銝𠰴㨃銝�':'active','�怠�':'paused','隡烐�銝�':'paused'}[p.status]||p.status;
+    const current={active:'active',paused:'paused','合作中':'active','上卡中':'active','暫停':'paused','休檔中':'paused'}[p.status]||p.status;
     if(next===current)return;
 
     let payload;
     if(next==='paused'){
       const pausedUntil=nextMondayIso();
-      if(!confirm(`蝣箏�����箝�䔶�瑼𥪯葉�滚�嚗髿n\n�祆活隡烐��喃��曹� ${pausedUntil}嚗𣬚訜憭拇��芸��Ｗ儔�䔶��∩葉�溻��`))return;
+      if(!confirm(`確定切換為「休檔中」嗎？\n\n本次休檔至下週一 ${pausedUntil}，當天會自動恢復「上卡中」。`))return;
       payload={status:'paused',paused_until:pausedUntil};
     }else{
-      if(!confirm('蝣箏��Ｗ儔�箝�䔶��∩葉�滚�嚗�'))return;
+      if(!confirm('確定恢復為「上卡中」嗎？'))return;
       payload={status:'active',paused_until:null};
     }
 
@@ -380,7 +380,7 @@ async function bindTalentSelfStatus(p,email){
 
     if(error||!updated){
       console.error(error);
-      alert('���衤耨�孵仃�梹�隢讠�敺��閰艾��');
+      alert('狀態修改失敗，請稍後再試。');
       return;
     }
     await renderTalentDashboard(updated,email);
@@ -391,29 +391,29 @@ async function announcementsPageInit(){
   const root=el('announcementsPage');if(!root)return;
   const {data:{session}}=await sb.auth.getSession();
   if(!session){
-    root.innerHTML=`<div class="announcement-page-state"><strong>隢见��餃��祇�撠��</strong><p>�砍��批捆���靘𥕦歇�餃����雿𨅯��𨀣䰻�卝��</p><a class="btn btn-primary" href="booking.html">�滚��餃�</a></div>`;
+    root.innerHTML=`<div class="announcement-page-state"><strong>請先登入公關專區</strong><p>公告內容僅提供已登入的合作公關查看。</p><a class="btn btn-primary" href="booking.html">前往登入</a></div>`;
     return;
   }
   const {data:profile,error:profileError}=await sb.from('talents').select('*').eq('user_id',session.user.id).maybeSingle();
   if(profileError||!profile){
-    root.innerHTML=`<div class="announcement-page-state"><strong>�曆��啣��𡏭���</strong><p>隢贝��𧼮��𨅯����𤥁�蝯∠�蝝���</p><a class="btn btn-outline" href="booking.html">餈𥪜��祇�撠��</a></div>`;
+    root.innerHTML=`<div class="announcement-page-state"><strong>找不到公關資料</strong><p>請返回公關專區或聯絡經紀。</p><a class="btn btn-outline" href="booking.html">返回公關專區</a></div>`;
     return;
   }
-  const normalized={active:'active',paused:'paused','���銝�':'active','銝𠰴㨃銝�':'active','�怠�':'paused','隡烐�銝�':'paused'}[profile.status]||profile.status;
+  const normalized={active:'active',paused:'paused','合作中':'active','上卡中':'active','暫停':'paused','休檔中':'paused'}[profile.status]||profile.status;
   if(!['active','paused'].includes(normalized)){
-    root.innerHTML=`<div class="announcement-page-state"><strong>�砍�撠𡁏𧊋�𧢲𦆮</strong><p>撣唾��𡁻�蝬梶�撖拇瓲敺�朖�舀䰻�见��𨳍��</p><a class="btn btn-outline" href="booking.html">餈𥪜��祇�撠��</a></div>`;
+    root.innerHTML=`<div class="announcement-page-state"><strong>公告尚未開放</strong><p>帳號通過經紀審核後即可查看公告。</p><a class="btn btn-outline" href="booking.html">返回公關專區</a></div>`;
     return;
   }
   const {data,error}=await sb.from('announcements').select('*').eq('is_active',true).order('created_at',{ascending:false});
   root.innerHTML=`<section class="announcement-page-shell">
     <div class="announcement-page-head">
-      <div><p class="eyebrow">MEMBER ANNOUNCEMENTS ��</p><h1>�祇��砍�</h1><p>�滩�閬讐���号�蹱��坿����圈�𡁶䰻�賣��渡��券�躰ㄐ��</p></div>
-      <a class="btn btn-outline" href="booking.html">�� 餈𥪜��祇�撠��</a>
+      <div><p class="eyebrow">MEMBER ANNOUNCEMENTS ✦</p><h1>公關公告</h1><p>重要規章、班務提醒與最新通知都會整理在這裡。</p></div>
+      <a class="btn btn-outline" href="booking.html">← 返回公關專區</a>
     </div>
-    <div class="announcement-page-list">${error||!data?.length?'<div class="announcement-page-empty">�桀�瘝埝��砍���</div>':data.map((x,i)=>`<article class="announcement-page-card">
+    <div class="announcement-page-list">${error||!data?.length?'<div class="announcement-page-empty">目前沒有公告。</div>':data.map((x,i)=>`<article class="announcement-page-card">
       <div class="announcement-page-number">${String(i+1).padStart(2,'0')}</div>
       <div class="announcement-page-content"><span>${new Date(x.created_at).toLocaleDateString('zh-TW')}</span><h2>${esc(x.title)}</h2><p>${esc(x.content)}</p></div>
-      <div class="announcement-page-sparkle">��</div>
+      <div class="announcement-page-sparkle">✦</div>
     </article>`).join('')}</div>
   </section>`;
 }
@@ -421,10 +421,10 @@ announcementsPageInit();
 
 function renderTalentAnnouncements(rows){
   return `<section class="talent-announcements">
-    <div class="admin-section-title"><div><p class="eyebrow">ANNOUNCEMENTS ��</p><h2>�祇��砍�</h2></div></div>
+    <div class="admin-section-title"><div><p class="eyebrow">ANNOUNCEMENTS ✦</p><h2>公關公告</h2></div></div>
     <div class="talent-announcement-list">${rows.length
       ? rows.map(x=>`<article class="talent-notice"><div><span>${new Date(x.created_at).toLocaleDateString('zh-TW')}</span><strong>${esc(x.title)}</strong></div><p>${esc(x.content)}</p></article>`).join('')
-      : '<div class="talent-notice empty-notice"><p>�桀�瘝埝��砍���</p></div>'}</div>
+      : '<div class="talent-notice empty-notice"><p>目前沒有公告。</p></div>'}</div>
   </section>`;
 }
 async function loadTalentAnnouncementTicker(){
@@ -435,7 +435,7 @@ async function loadTalentAnnouncementTicker(){
     if(ticker)ticker.style.display='none';
     return;
   }
-  track.innerHTML=(data||[]).map((x,i)=>`<span class="ticker-item"><b>${esc(x.title)}</b>${x.content?`<em>${esc(x.content)}</em>`:''}</span>${i<data.length-1?'<i>��</i>':''}`).join('');
+  track.innerHTML=(data||[]).map((x,i)=>`<span class="ticker-item"><b>${esc(x.title)}</b>${x.content?`<em>${esc(x.content)}</em>`:''}</span>${i<data.length-1?'<i>◇</i>':''}`).join('');
 }
 
 
@@ -444,7 +444,7 @@ function talentAvatarMarkup(t,cls='',portrait=false){
   const initial=esc((t?.nickname||'?').slice(0,1));
   const src=portrait?(t?.avatar_portrait_url||t?.avatar_url):t?.avatar_url;
   return src
-    ? `<span class="talent-avatar ${cls}"><img src="${esc(src)}" alt="${name} 憭折�鞎�" loading="lazy"></span>`
+    ? `<span class="talent-avatar ${cls}"><img src="${esc(src)}" alt="${name} 大頭貼" loading="lazy"></span>`
     : `<span class="talent-avatar talent-avatar-fallback ${cls}"><b>${initial}</b></span>`;
 }
 
@@ -455,7 +455,7 @@ function loadImageFile(file){
   return new Promise((resolve,reject)=>{
     const url=URL.createObjectURL(file),img=new Image();
     img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('�𣇉�霈��硋仃�𨰜��'))};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('圖片讀取失敗。'))};
     img.src=url;
   });
 }
@@ -478,29 +478,29 @@ function drawAvatarCrop(canvas,img,aspect,state){
 }
 
 function canvasBlob(canvas){
-  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('�𣇉��閧�憭望���')),'image/webp',.9));
+  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('圖片處理失敗。')),'image/webp',.9));
 }
 
 async function openAvatarCropper(file){
   if(!file)return null;
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('�芣𣈲�� JPG��PNG��WEBP �𣇉���');
-  if(file.size>10*1024*1024)throw new Error('�𣇉�隢见嚉頞�� 10MB��');
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('只支援 JPG、PNG、WEBP 圖片。');
+  if(file.size>10*1024*1024)throw new Error('圖片請勿超過 10MB。');
   const img=await loadImageFile(file);
   const state={zoom:1,cx:0,cy:0};
   const modal=document.createElement('div');
   modal.className='avatar-crop-modal';
   modal.innerHTML=`
     <div class="avatar-crop-dialog">
-      <div class="avatar-crop-head"><div><p class="eyebrow">PHOTO CROP ��</p><h3>隤踵㟲憭折�鞎�</h3><p>�𡝗𠗊�抒�隤踵㟲雿滨蔭嚗𣬚葬�曉��芸楛�𨀣迭����硔��</p></div><button type="button" class="crop-close">�</button></div>
+      <div class="avatar-crop-head"><div><p class="eyebrow">PHOTO CROP ✦</p><h3>調整大頭貼</h3><p>拖曳照片調整位置，縮放到自己喜歡的構圖。</p></div><button type="button" class="crop-close">×</button></div>
       <div class="avatar-crop-stage">
-        <div class="crop-main"><span>銝餉��抒� 繚 3:4</span><canvas width="600" height="800"></canvas><small>�祇�撠��嚗誩��𦦵恣���撅交風</small></div>
-        <div class="crop-side"><span>蝛拙�摨阡�閬� 繚 3:4</span><canvas width="600" height="800"></canvas><small>��閬���讐��梁号蝛拙�摨�</small></div>
+        <div class="crop-main"><span>主要照片 · 3:4</span><canvas width="600" height="800"></canvas><small>公關專區／公關管理／履歷</small></div>
+        <div class="crop-side"><span>穩定度預覽 · 3:4</span><canvas width="600" height="800"></canvas><small>需要留意的報班穩定度</small></div>
       </div>
       <div class="avatar-crop-controls">
-        <label>蝮格𦆮 <input class="crop-zoom" type="range" min="1" max="3" step=".02" value="1"></label>
-        <div class="crop-hint">�湔𦻖�典椰�羓�����𡝗𠗊雿滨蔭</div>
+        <label>縮放 <input class="crop-zoom" type="range" min="1" max="3" step=".02" value="1"></label>
+        <div class="crop-hint">直接在左邊照片上拖曳位置</div>
       </div>
-      <div class="avatar-crop-actions"><button type="button" class="btn btn-outline crop-cancel">�𡝗�</button><button type="button" class="btn btn-primary crop-apply">雿輻鍂�坔�贝���</button></div>
+      <div class="avatar-crop-actions"><button type="button" class="btn btn-outline crop-cancel">取消</button><button type="button" class="btn btn-primary crop-apply">使用這個裁切</button></div>
     </div>`;
   document.body.appendChild(modal);
   const main=modal.querySelector('.crop-main canvas'),side=modal.querySelector('.crop-side canvas');
@@ -554,116 +554,116 @@ async function uploadTalentAvatarCrops(p,crops){
 }
 
 function ageFromBirthday(birthday){
-  if(!birthday)return '��';
+  if(!birthday)return '—';
   const b=new Date(birthday+'T12:00:00'),n=new Date();
   let age=n.getFullYear()-b.getFullYear();
   const m=n.getMonth()-b.getMonth();
   if(m<0||(m===0&&n.getDate()<b.getDate()))age--;
-  return age>=0?age:'��';
+  return age>=0?age:'—';
 }
 function profileEditor(p,email){
   return `<section class="profile-editor">
     <div class="profile-header">
       <div>
         <p class="eyebrow">MY PROFILE</p>
-        <h2>�𤑳�鞈��</h2>
-        <p>�𡃏䌊撌梁��箸𧋦鞈���渡�憟踝�銋见��梁号���蝝��舐窗��凒�嫣噶��</p>
+        <h2>我的資料</h2>
+        <p>把自己的基本資料整理好，之後報班與經紀聯絡會更方便。</p>
       </div>
     </div>
 
     <form id="profileForm" class="profile-form">
       <div class="profile-section profile-avatar-section">
         <div class="profile-avatar-copy">
-          <p class="eyebrow">PROFILE PHOTO ��</p>
-          <h3>�𤑳�憭折�鞎�</h3>
-          <p>撱箄降雿輻鍂皜����迤�Ｕ���蝺朞䌊�嗥��抒����蝝�敺�蝱��誑撅交風�∠��孵�憿舐內��</p>
+          <p class="eyebrow">PROFILE PHOTO ✦</p>
+          <h3>我的大頭貼</h3>
+          <p>建議使用清楚、正面、光線自然的照片。經紀後台會以履歷卡片方式顯示。</p>
         </div>
         <div class="profile-avatar-editor">
           <div class="profile-avatar-main">
             <span class="profile-avatar-ratio">3:4</span>
-            <span class="profile-avatar-preview" id="profileAvatarPreview">${p.avatar_url?`<img src="${esc(p.avatar_url)}" alt="�𤑳�憭折�鞎�">`:`<span>${esc((p.nickname||'?').slice(0,1))}</span>`}</span>
+            <span class="profile-avatar-preview" id="profileAvatarPreview">${p.avatar_url?`<img src="${esc(p.avatar_url)}" alt="我的大頭貼">`:`<span>${esc((p.nickname||'?').slice(0,1))}</span>`}</span>
           </div>
           <div class="profile-avatar-tools">
-            <strong>銝𠰴���������</strong>
-            <ul><li>撱箄降雿輻鍂甇�𢒰���璆𠾼���蝺朞䌊�嗥��游��抒�</li><li>�舀螱 JPG / PNG / WEBP</li><li>�豢�敺�虾�𡝗𠗊雿滨蔭��葬��</li></ul>
-            <label class="profile-avatar-upload">�豢��抒�<input id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
-            <small>鋆��摰峕�敺䕘��劐��嫘���摮䀝耨�嫘�齿���迤撘𤩺凒�啜��</small>
+            <strong>上傳與裁切照片</strong>
+            <ul><li>建議使用正面、清楚、光線自然的直式照片</li><li>支援 JPG / PNG / WEBP</li><li>選擇後可拖曳位置與縮放</li></ul>
+            <label class="profile-avatar-upload">選擇照片<input id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
+            <small>裁切完成後，按下方「儲存修改」才會正式更新。</small>
           </div>
           <div class="profile-avatar-mini-preview">
-            <div class="profile-preview-label"><b>�鞱汗���</b><small>蝟餌絞�折＊蝷�</small></div>
-            <span class="profile-preview-frame">${p.avatar_url?`<img src="${esc(p.avatar_url)}" alt="�𤑳�憭折�鞎�">`:`<span>${esc((p.nickname||'?').slice(0,1))}</span>`}</span>
+            <div class="profile-preview-label"><b>預覽效果</b><small>系統內顯示</small></div>
+            <span class="profile-preview-frame">${p.avatar_url?`<img src="${esc(p.avatar_url)}" alt="我的大頭貼">`:`<span>${esc((p.nickname||'?').slice(0,1))}</span>`}</span>
           </div>
         </div>
       </div>
       <div class="profile-section">
-        <div class="profile-photo-quicksave"><div><small>PROFILE PHOTO</small><strong>�抒�隤踵㟲憟賭��𠬍�</strong><span>�湔𦻖�券�躰ㄐ�脣�嚗䔶��典�皛穃���銝钅𢒰��</span></div><button type="button" id="profilePhotoQuickSave">�脣��抒� <i>��</i></button></div><h3>�箸𧋦鞈��</h3>
+        <div class="profile-photo-quicksave"><div><small>PROFILE PHOTO</small><strong>照片調整好了嗎？</strong><span>直接在這裡儲存，不用再滑到最下面。</span></div><button type="button" id="profilePhotoQuickSave">儲存照片 <i>✓</i></button></div><h3>基本資料</h3>
         <div class="profile-grid">
-          <label>憪枏�<input name="name" maxlength="40" value="${esc(p.name||'')}" placeholder="隢贝撓�亙���"></label>
-          <label>�梁迂<input name="nickname" maxlength="40" required value="${esc(p.nickname||'')}" placeholder="撟喳虜雿輻鍂��黸蝔�"></label>
+          <label>姓名<input name="name" maxlength="40" value="${esc(p.name||'')}" placeholder="請輸入姓名"></label>
+          <label>暱稱<input name="nickname" maxlength="40" required value="${esc(p.nickname||'')}" placeholder="平常使用的暱稱"></label>
           <label class="profile-birthday-field">
-            <span class="profile-field-title">��𠯫</span>
+            <span class="profile-field-title">生日</span>
             <div class="profile-date-shell">
-              <input type="date" name="birthday" value="${esc(p.birthday||'')}" aria-label="��𠯫">
+              <input type="date" name="birthday" value="${esc(p.birthday||'')}" aria-label="生日">
             </div>
-            <small class="profile-date-hint">暺墧��舫���𠯫��</small>
+            <small class="profile-date-hint">點擊可選擇日期</small>
           </label>
-          <label>撟湧翩<input value="${esc(ageFromBirthday(p.birthday))}" readonly class="readonly"></label>
-          <label>�批³�<select name="gender"><option value="">隢钅���</option>${['憟單��','�瑟��','�嗡�','銝漤�誯蠧'].map(v=>`<option ${p.gender===v?'selected':''}>${v}</option>`).join('')}</select></label>
-          <label>撅���啣�<input name="area" maxlength="40" value="${esc(p.area||'')}" placeholder="靘见�嚗𡁜蝱�𨰜��鰵��"></label>
+          <label>年齡<input value="${esc(ageFromBirthday(p.birthday))}" readonly class="readonly"></label>
+          <label>性別<select name="gender"><option value="">請選擇</option>${['女性','男性','其他','不透露'].map(v=>`<option ${p.gender===v?'selected':''}>${v}</option>`).join('')}</select></label>
+          <label>居住地區<input name="area" maxlength="40" value="${esc(p.area||'')}" placeholder="例如：台北、新北"></label>
         </div>
       </div>
 
       <div class="profile-section">
-        <h3>�舐窗�孵�</h3>
+        <h3>聯絡方式</h3>
         <div class="profile-grid">
-          <label>�𧢲�嚗𦶣INE<input name="contact" maxlength="80" value="${esc(p.contact||'')}" placeholder="�𧢲��毺Ⅳ�� LINE ID"></label>
-          <label>Instagram<input name="instagram" maxlength="100" value="${esc(p.instagram||'')}" placeholder="靘见�嚗鋣yourname"></label>
-          <label>雿輻鍂��董��<input name="username" maxlength="20" value="${esc(p.username||'')}" placeholder="靘见�嚗䭰ana88"></label>
+          <label>手機／LINE<input name="contact" maxlength="80" value="${esc(p.contact||'')}" placeholder="手機號碼或 LINE ID"></label>
+          <label>Instagram<input name="instagram" maxlength="100" value="${esc(p.instagram||'')}" placeholder="例如：@yourname"></label>
+          <label>使用者帳號<input name="username" maxlength="20" value="${esc(p.username||'')}" placeholder="例如：nana88"></label>
           <label class="profile-wide">Email<input value="${esc(email)}" readonly class="readonly"></label>
-          <small class="profile-wide username-note">雿輻鍂��董�笔虾�其��餃�嚗�3��20 雿滩㘚���撖怒��彍摮𨰜��. �� _嚗𡻈mail 隞滨��臭誑�餃���</small>
+          <small class="profile-wide username-note">使用者帳號可用來登入，3–20 位英文小寫、數字、. 或 _；Email 仍然可以登入。</small>
         </div>
       </div>
 
       <div class="profile-section profile-bank-section">
         <div class="profile-bank-heading">
-          <div><p class="eyebrow">PAYMENT ACCOUNT ��</p><h3>�芾��舀狡撣唾�</h3></div>
-          <small>隢讠Ⅱ隤滩��蹱迤蝣綽��踹��芾��舀狡�航炊��</small>
+          <div><p class="eyebrow">PAYMENT ACCOUNT ◇</p><h3>薪資匯款帳號</h3></div>
+          <small>請確認資料正確，避免薪資匯款錯誤。</small>
         </div>
         <div class="bank-account-fields">
           <label class="bank-code-field">
-            <span>��銵䔶誨蝣潘�銝厩Ⅳ嚗�</span>
-            <input name="bank_code" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" value="${esc(p.bank_code||'')}" placeholder="靘见� 822" autocomplete="off">
+            <span>銀行代碼（三碼）</span>
+            <input name="bank_code" inputmode="numeric" pattern="[0-9]{3}" maxlength="3" value="${esc(p.bank_code||'')}" placeholder="例如 822" autocomplete="off">
           </label>
-          <span class="bank-account-divider">��</span>
+          <span class="bank-account-divider">—</span>
           <label class="bank-number-field">
-            <span>��銵�董��</span>
-            <input name="bank_account" inputmode="numeric" pattern="[0-9]*" maxlength="30" value="${esc(p.bank_account||'')}" placeholder="隢贝撓�仿�銵�董��" autocomplete="off">
+            <span>銀行帳號</span>
+            <input name="bank_account" inputmode="numeric" pattern="[0-9]*" maxlength="30" value="${esc(p.bank_account||'')}" placeholder="請輸入銀行帳號" autocomplete="off">
           </label>
         </div>
-        <p class="bank-account-hint">��銵䔶誨蝣潸�憛� 3 雿齿彍摮梹�撣唾�隢衤�摮䀹鼈嚗誯�銵� APP 憿舐內摰峕㟲頛詨���</p>
+        <p class="bank-account-hint">銀行代碼請填 3 位數字；帳號請依存摺／銀行 APP 顯示完整輸入。</p>
       </div>
 
       <div class="profile-section">
-        <h3>�衤犖鞈��</h3>
+        <h3>個人資訊</h3>
         <div class="profile-grid">
-          <label>頨恍�嚗Ếm嚗�<input type="number" name="height_cm" min="120" max="220" value="${esc(p.height_cm||'')}" placeholder="靘见�嚗�165"></label>
-          <label>擃娪�嚗ɑg嚗�<input type="number" step="0.1" name="weight_kg" min="30" max="200" value="${esc(p.weight_kg||'')}" placeholder="靘见�嚗�48"></label>
-          <label>銵���<select name="blood_type"><option value="">隢钅���</option>${['A','B','AB','O','銝齿�璆�','銝漤�誯蠧'].map(v=>`<option ${p.blood_type===v?'selected':''}>${v}</option>`).join('')}</select></label>
+          <label>身高（cm）<input type="number" name="height_cm" min="120" max="220" value="${esc(p.height_cm||'')}" placeholder="例如：165"></label>
+          <label>體重（kg）<input type="number" step="0.1" name="weight_kg" min="30" max="200" value="${esc(p.weight_kg||'')}" placeholder="例如：48"></label>
+          <label>血型<select name="blood_type"><option value="">請選擇</option>${['A','B','AB','O','不清楚','不透露'].map(v=>`<option ${p.blood_type===v?'selected':''}>${v}</option>`).join('')}</select></label>
         </div>
       </div>
 
       <div class="profile-section">
-        <h3>蝺𦠜�亥�蝯�</h3>
+        <h3>緊急聯絡</h3>
         <div class="profile-grid">
-          <label>蝺𦠜�亥�蝯∩犖<input name="emergency_contact" maxlength="80" value="${esc(p.emergency_contact||'')}" placeholder="憪枏��𣇉迂��"></label>
-          <label>蝺𦠜�亥�蝯⊿𤓖閰�<input name="emergency_phone" maxlength="40" value="${esc(p.emergency_phone||'')}" placeholder="�餉店�毺Ⅳ"></label>
+          <label>緊急聯絡人<input name="emergency_contact" maxlength="80" value="${esc(p.emergency_contact||'')}" placeholder="姓名或稱呼"></label>
+          <label>緊急聯絡電話<input name="emergency_phone" maxlength="40" value="${esc(p.emergency_phone||'')}" placeholder="電話號碼"></label>
         </div>
       </div>
 
       <div class="profile-save-area">
-        <button class="btn btn-primary" id="prepareSaveProfile" type="button">�脣�靽格㺿</button>
-        <button class="btn btn-confirm" id="confirmSaveProfile" type="submit" style="display:none">蝣箄�靽格㺿</button>
-        <button class="btn btn-outline" id="cancelSaveProfile" type="button" style="display:none">�𡝗�</button>
+        <button class="btn btn-primary" id="prepareSaveProfile" type="button">儲存修改</button>
+        <button class="btn btn-confirm" id="confirmSaveProfile" type="submit" style="display:none">確認修改</button>
+        <button class="btn btn-outline" id="cancelSaveProfile" type="button" style="display:none">取消</button>
         <p id="profileStatus" class="form-status"></p>
       </div>
     </form>
@@ -681,19 +681,19 @@ function bindProfileEditor(p){
         if(!crops){avatarInput.value='';return}
         if(pendingAvatarCrops?.preview)URL.revokeObjectURL(pendingAvatarCrops.preview);
         pendingAvatarCrops=crops;
-        avatarPreview.innerHTML=`<img src="${crops.preview}" alt="鋆��敺�之�剛票�鞱汗">`;
+        avatarPreview.innerHTML=`<img src="${crops.preview}" alt="裁切後大頭貼預覽">`;
         const miniPreview=document.querySelector('.profile-preview-frame');
-        if(miniPreview)miniPreview.innerHTML=`<img src="${crops.preview}" alt="鋆��敺屸�閬�">`;
-        text('profileStatus','�抒�撌脰�����琜��剹���摮䀝耨�嫘�滚��齿�甇���湔鰵��');
+        if(miniPreview)miniPreview.innerHTML=`<img src="${crops.preview}" alt="裁切後預覽">`;
+        text('profileStatus','照片已裁切完成，按「儲存修改」後才會正式更新。');
       }catch(err){
         console.error(err);avatarInput.value='';
-        text('profileStatus','�� '+(err?.message||'�抒��閧�憭望�'));
+        text('profileStatus','❌ '+(err?.message||'照片處理失敗'));
       }
     };
   }
 
   prepare.onclick=()=>{
-    text('profileStatus','隢讠Ⅱ隤滩��坔�摰對�蝣箏�敺峕��𣬚Ⅱ隤滢耨�嫘�溻��');
+    text('profileStatus','請確認資料內容，確定後按「確認修改」。');
     prepare.style.display='none';
     confirmBtn.style.display='inline-flex';
     cancelBtn.style.display='inline-flex';
@@ -710,7 +710,7 @@ function bindProfileEditor(p){
     e.preventDefault();
     confirmBtn.disabled=true;
     cancelBtn.disabled=true;
-    text('profileStatus','�脣�銝凌��');
+    text('profileStatus','儲存中…');
 
     const x=Object.fromEntries(new FormData(form));
     const payload={
@@ -733,16 +733,16 @@ function bindProfileEditor(p){
     };
 
     try{
-      if(payload.username&&!validTalentUsername(payload.username))throw new Error('雿輻鍂��董�罸��� 3��20 雿滩㘚���撖怒��彍摮𨰜��. �� _');
-      if(payload.bank_code&&!/^\d{3}$/.test(payload.bank_code))throw new Error('��銵䔶誨蝣潸�頛詨�摰峕㟲 3 蝣潭彍摮�');
-      if(payload.bank_account&&!/^\d+$/.test(payload.bank_account))throw new Error('��銵�董�笔蘨�質撓�交彍摮�');
+      if(payload.username&&!validTalentUsername(payload.username))throw new Error('使用者帳號需為 3–20 位英文小寫、數字、. 或 _');
+      if(payload.bank_code&&!/^\d{3}$/.test(payload.bank_code))throw new Error('銀行代碼請輸入完整 3 碼數字');
+      if(payload.bank_account&&!/^\d+$/.test(payload.bank_account))throw new Error('銀行帳號只能輸入數字');
       if(pendingAvatarCrops){
-        text('profileStatus','甇�銁銝𠰴�鋆��敺𣬚�憭折�鞎潑��');
+        text('profileStatus','正在上傳裁切後的大頭貼…');
         Object.assign(payload,await uploadTalentAvatarCrops(p,pendingAvatarCrops));
       }
     }catch(err){
       console.error(err);
-      text('profileStatus','�� 憭折�鞎潔��喳仃�梹�'+(err?.message||'隢讠�敺��閰�'));
+      text('profileStatus','❌ 大頭貼上傳失敗：'+(err?.message||'請稍後再試'));
       confirmBtn.disabled=false;
       cancelBtn.disabled=false;
       return;
@@ -751,13 +751,13 @@ function bindProfileEditor(p){
     const {error}=await sb.from('talents').update(payload).eq('id',p.id);
     if(error){
       console.error(error);
-      text('profileStatus',error.code==='23505'?'�� �坔�衤蝙�刻��董�笔歇�劐犖雿輻鍂嚗諹��𥕢��卝��':'�� �脣�憭望�嚗諹�蝔滚��滩岫��');
+      text('profileStatus',error.code==='23505'?'❌ 這個使用者帳號已有人使用，請換一個。':'❌ 儲存失敗，請稍後再試。');
       confirmBtn.disabled=false;
       cancelBtn.disabled=false;
       return;
     }
 
-    text('profileStatus','�� �衤犖鞈��撌脫凒�啜��');
+    text('profileStatus','✅ 個人資料已更新。');
     setTimeout(()=>location.reload(),800);
   };
 }
@@ -765,11 +765,11 @@ function bindProfileEditor(p){
 function bookingComposer(p,venues){
   const now=new Date();
   now.setHours(12,0,0,0);
-  const day=now.getDay(); // 0�� 1銝� ... 5鈭� 6��
+  const day=now.getDay(); // 0日 1一 ... 5五 6六
 
-  // �曹�嚚鮋�勗�嚗𡁏㟲�卝�峕𧋦�曹�嚚鮋�望𠯫�漤��舫�嚗���怠歇蝬㯄��餌��交���
-  // �蹱糓�箔��啣��伐��唬�蝺𡁶��祇��臭誑鋆𦦵蒈�祇�梯��拇𠯫�毺��准��
-  // �曹�嚚鮋�望𠯫嚗𡁶雁���閬誩�嚗諹䌊�訫��𥟇��䔶��曹�嚚鮋�望𠯫�溻��
+  // 週一～週四：整個「本週一～週日」都可選，包含已經過去的日期。
+  // 這是為了新加入／新上線的公關可以補登本週較早日期的班。
+  // 週五～週日：維持原規則，自動切換成「下週一～週日」。
   let monday=new Date(now);
   const diffToThisMonday=(day===0?-6:1-day);
   monday.setDate(now.getDate()+diffToThisMonday);
@@ -785,17 +785,17 @@ function bookingComposer(p,venues){
     };
   });
 
-  const weekNames=['�望𠯫','�曹�','�曹�','�曹�','�勗�','�曹�','�勗�'];
-  const title=showingNextWeek?'銝钅�勗𥼚��':'�祇�勗𥼚��';
-  const range=showingNextWeek?'銝钅�曹� 嚚� 銝钅�望𠯫':'�祇�曹� 嚚� �祇�望𠯫';
+  const weekNames=['週日','週一','週二','週三','週四','週五','週六'];
+  const title=showingNextWeek?'下週報班':'本週報班';
+  const range=showingNextWeek?'下週一 ～ 下週日':'本週一 ～ 本週日';
 
   return `<section class="booking-composer">
     <div class="admin-section-title">
-      <div><p class="eyebrow">WEEKLY BOOKING ��</p><h2>${title}</h2></div>
+      <div><p class="eyebrow">WEEKLY BOOKING ✦</p><h2>${title}</h2></div>
       <span>${range}</span>
     </div>
     <div class="weekly-booking-notice is-open">
-      ${showingNextWeek?'�桀�憛怠神銝钅�梁号銵剁��舫�����曹��喲�望𠯫��':'�桀�憛怠神�祇�梁号銵剁��湧�望��煺��單���𠯫�賢虾隞仿�������鈭娍��芸�����𣂷��梁号銵具��'}
+      ${showingNextWeek?'目前填寫下週班表｜可選擇下週一至週日。':'目前填寫本週班表｜整週星期一至星期日都可以選擇；星期五會自動切換成下週班表。'}
     </div>
     <form id="multiBookingForm">
       <div class="date-grid weekly-date-grid">${dates.map(x=>`<label class="date-chip">
@@ -803,11 +803,11 @@ function bookingComposer(p,venues){
         <span><b>${weekNames[x.date.getDay()]}</b><small>${twDate(x.iso)}</small></span>
       </label>`).join('')}</div>
       <div class="booking-fields booking-fields-simple">
-        <label>摨堒振<select name="venue" required><option value="">隢钅���</option>${venues.map(v=>`<option>${esc(v.name)}</option>`).join('')}<option>�嗡�</option></select></label>
-        <label>銝羓号���<input type="time" name="start" required></label>
+        <label>店家<select name="venue" required><option value="">請選擇</option>${venues.map(v=>`<option>${esc(v.name)}</option>`).join('')}<option>其他</option></select></label>
+        <label>上班時間<input type="time" name="start" required></label>
       </div>
-      <label>�躰酉<textarea name="note" maxlength="500" placeholder="�詨‵"></textarea></label>
-      <button class="btn btn-primary" type="submit">��枂${showingNextWeek?'銝钅��':'�祇��'}�剛”</button>
+      <label>備註<textarea name="note" maxlength="500" placeholder="選填"></textarea></label>
+      <button class="btn btn-primary" type="submit">送出${showingNextWeek?'下週':'本週'}班表</button>
       <p id="multiBookingStatus" class="form-status"></p>
     </form>
   </section>`;
@@ -815,47 +815,47 @@ function bookingComposer(p,venues){
 function bindBookingComposer(p){
   el('multiBookingForm').onsubmit=async e=>{
     e.preventDefault();const f=e.currentTarget,b=f.querySelector('button[type=submit]');const dates=[...f.querySelectorAll('input[name=dates]:checked')].map(x=>x.value);
-    if(!dates.length){text('multiBookingStatus','�𩤃� 隢贝秐撠煾����憭押��');return}
-    b.disabled=true;text('multiBookingStatus',`瑼Ｘ䰻 ${dates.length} 憭拍号銵其葉�圳);
+    if(!dates.length){text('multiBookingStatus','⚠️ 請至少選擇一天。');return}
+    b.disabled=true;text('multiBookingStatus',`檢查 ${dates.length} 天班表中…`);
     const x=Object.fromEntries(new FormData(f));
     const {data:existing,error:checkError}=await sb.from('bookings').select('booking_date,status').eq('talent_id',p.id).in('booking_date',dates).in('status',['pending','confirmed','leave']);
-    if(checkError){console.error(checkError);text('multiBookingStatus','�� �⊥�瑼Ｘ䰻�Ｘ��剛”嚗諹��齿鰵�渡�敺��閰艾��');b.disabled=false;return}
+    if(checkError){console.error(checkError);text('multiBookingStatus','❌ 無法檢查既有班表，請重新整理後再試。');b.disabled=false;return}
     const existed=new Set((existing||[]).map(v=>v.booking_date));
     const newDates=dates.filter(d=>!existed.has(d));
-    if(!newDates.length){text('multiBookingStatus','�𩤃� �豢���𠯫�罸�撌脩��厩号銵冽�隢见�蝝����瘝埝��滩���枂��');b.disabled=false;return}
+    if(!newDates.length){text('multiBookingStatus','⚠️ 選擇的日期都已經有班表或請假紀錄，沒有重複送出。');b.disabled=false;return}
     const rows=newDates.map(d=>({user_id:p.user_id,talent_id:p.id,nickname:p.nickname,contact:p.contact||'',booking_date:d,venue:x.venue,start_time:x.start,note:x.note||null,status:'pending'}));
     const {error}=await sb.from('bookings').insert(rows);
-    if(error){console.error(error);text('multiBookingStatus','�� ��枂憭望�嚗諹��齿鰵�渡�敺��閰艾��');b.disabled=false;return}
+    if(error){console.error(error);text('multiBookingStatus','❌ 送出失敗，請重新整理後再試。');b.disabled=false;return}
     const skipped=dates.length-newDates.length;
-    text('multiBookingStatus',`�� 撌脤��枂 ${newDates.length} 憭拍号銵�${skipped?`嚗�𡖂�� ${skipped} 憭拙歇�厩����隞交𧊋�滩���枂`:''}嚗𣬚�敺��蝝�蝣箄���`);setTimeout(()=>location.reload(),1000);
+    text('multiBookingStatus',`✅ 已送出 ${newDates.length} 天班表${skipped?`，另有 ${skipped} 天已有紀錄所以未重複送出`:''}，等待經紀確認。`);setTimeout(()=>location.reload(),1000);
   };
 }
 function renderMyBookings(rows){
-  if(!rows.length)return '<div class="member-empty-state"><span>��</span><strong>�桀�瘝埝��剛”</strong><p>摰峕��梁号敺䕘��剛”���蝝�蝣箄����𧢲�憿舐內�券�躰ㄐ��</p></div>';
-  const weekday=['��','銝�','鈭�','銝�','��','鈭�','��'];
+  if(!rows.length)return '<div class="member-empty-state"><span>◇</span><strong>目前沒有班表</strong><p>完成報班後，班表與經紀確認狀態會顯示在這裡。</p></div>';
+  const weekday=['日','一','二','三','四','五','六'];
   return rows.map(x=>{
     const d=new Date(x.booking_date+'T12:00:00');
     const md=`${d.getMonth()+1}/${d.getDate()}`;
-    const wd=`��${weekday[d.getDay()]}`;
+    const wd=`週${weekday[d.getDay()]}`;
     return `<article class="my-booking-row member-shift-card">
       <div class="member-shift-date"><strong>${md}</strong><small>${wd}</small></div>
       <div class="member-shift-info">
         <span class="member-shift-venue">${esc(x.venue)}</span>
-        <strong>${esc(x.start_time?.slice(0,5)||'�芸‵���')}</strong>
-        <small>${x.note?esc(x.note):'�∪�閮�'}</small>
+        <strong>${esc(x.start_time?.slice(0,5)||'未填時間')}</strong>
+        <small>${x.note?esc(x.note):'無備註'}</small>
       </div>
       <div class="my-booking-side">
         <span class="booking-badge ${esc(x.status)}">${esc(statusText[x.status]||x.status)}</span>
-        ${['pending','confirmed'].includes(x.status)?`<button class="cancel-booking" data-id="${x.id}">�𡝗�</button>`:''}
+        ${['pending','confirmed'].includes(x.status)?`<button class="cancel-booking" data-id="${x.id}">取消</button>`:''}
       </div>
     </article>`;
   }).join('');
 }
 function bindCancelButtons(){
   document.querySelectorAll('.cancel-booking').forEach(b=>b.onclick=async()=>{
-    if(!confirm('蝣箏�閬��瘨��嗘�憭拍��梁号�𠬍�'))return;
+    if(!confirm('確定要取消這一天的報班嗎？'))return;
     b.disabled=true;const {error}=await sb.from('bookings').update({status:'cancelled'}).eq('id',b.dataset.id);
-    if(error){alert('�𡝗�憭望�');b.disabled=false}else location.reload();
+    if(error){alert('取消失敗');b.disabled=false}else location.reload();
   });
 }
 
@@ -866,7 +866,7 @@ async function adminInit(){
  const {data:{session}}=await sb.auth.getSession();
  if(!session){renderAdminLogin();return}
  const {data:m}=await sb.from('admin_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
- if(!m){await sb.auth.signOut();renderAdminLogin('�坔�见董����厩恣��摱甈𢠃���');return}
+ if(!m){await sb.auth.signOut();renderAdminLogin('這個帳號沒有管理員權限。');return}
  renderAdminShell(session.user.email);await refreshAdmin();
 }
 adminInit();
@@ -878,73 +878,73 @@ function renderAdminLogin(msg=''){
    <div class="admin-login-ambient" aria-hidden="true">
      <span class="admin-login-orb orb-one"></span>
      <span class="admin-login-orb orb-two"></span>
-     <span class="admin-login-star star-one">��</span>
-     <span class="admin-login-star star-two">��</span>
+     <span class="admin-login-star star-one">✦</span>
+     <span class="admin-login-star star-two">◇</span>
    </div>
 
    <section class="admin-login-shell">
      <div class="admin-login-brand">
        <img src="assets/lindao-emblem-transparent.png" alt="">
-       <div><span>LIN DAO ENTERTAINMENT</span><strong>�堒�憡𥟇�</strong></div>
+       <div><span>LIN DAO ENTERTAINMENT</span><strong>林刀娛樂</strong></div>
      </div>
 
      <div class="admin-login-copy">
-       <p class="eyebrow">EXECUTIVE ACCESS 繚 V10.45</p>
-       <h1>蝬梶�蝞∠�銝剖�</h1>
-       <p>���撌脫�甈羓恣��摱�餃�����函号�踺����𡏭��躰��罸�鞈�����甈𢠃�靽肽風��</p>
+       <p class="eyebrow">EXECUTIVE ACCESS · V10.45</p>
+       <h1>經紀管理中心</h1>
+       <p>僅限已授權管理員登入。內部班務、公關資料與營運資訊皆受權限保護。</p>
      </div>
 
      <form id="loginForm" class="admin-login-form">
-       <label><span>Email</span><input type="email" name="email" required autocomplete="username" placeholder="蝞∠��� Email"></label>
-       <label><span>撖�Ⅳ</span><input type="password" name="password" required autocomplete="current-password" placeholder="頛詨�撖�Ⅳ"></label>
-       <button class="admin-login-submit" type="submit"><span>�餃�蝞∠�敺�蝱</span><b>��</b></button>
+       <label><span>Email</span><input type="email" name="email" required autocomplete="username" placeholder="管理員 Email"></label>
+       <label><span>密碼</span><input type="password" name="password" required autocomplete="current-password" placeholder="輸入密碼"></label>
+       <button class="admin-login-submit" type="submit"><span>登入管理後台</span><b>↗</b></button>
        <p id="loginStatus" class="form-status">${esc(msg)}</p>
      </form>
 
      <div class="admin-login-foot">
-       <span>��</span><p>撠�平 繚 隤牐縑 繚 摰匧� 繚 �梁�</p><small>PRIVATE MANAGEMENT CONSOLE</small>
+       <span>◆</span><p>專業 · 誠信 · 安全 · 隱私</p><small>PRIVATE MANAGEMENT CONSOLE</small>
      </div>
    </section>
  </div>`;
  el('loginForm').onsubmit=async e=>{
    e.preventDefault();
    const x=Object.fromEntries(new FormData(e.currentTarget));
-   text('loginStatus','�餃�銝凌��');
+   text('loginStatus','登入中…');
    const {error}=await sb.auth.signInWithPassword({email:x.email,password:x.password});
-   error?text('loginStatus','�� �餃�憭望�嚗諹�蝣箄�撣唾�撖�Ⅳ��'):location.reload();
+   error?text('loginStatus','❌ 登入失敗，請確認帳號密碼。'):location.reload();
  };
 }
 function renderAdminShell(email){
  document.body.classList.remove('admin-login-mode');
  el('adminApp')?.classList.remove('admin-login-root');
  const nav=[
-   ['dashboard','蝮質汗','OVERVIEW','��'],
-   ['schedule','�剖�銝剖�','SCHEDULE CENTER','��'],
-   ['talents','�祇�蝞∠�','TALENT MANAGEMENT','��'],
-   ['applications','�唬犖�唾�','APPLICATIONS','��'],
-   ['payroll','�芾�蝞∠�','WEEKLY PAYROLL','嚗�'],
-   ['operations','蝬𨅯�蝞∠�','OPERATIONS','��']
+   ['dashboard','總覽','OVERVIEW','⌂'],
+   ['schedule','班務中心','SCHEDULE CENTER','▦'],
+   ['talents','公關管理','TALENT MANAGEMENT','♢'],
+   ['applications','新人申請','APPLICATIONS','✦'],
+   ['payroll','薪資管理','WEEKLY PAYROLL','＄'],
+   ['operations','綜合管理','OPERATIONS','◇']
  ];
  el('adminApp').innerHTML=`
  <div class="admin96-console">
    <aside class="admin96-sidebar">
      <div class="admin96-logo">
        <img src="assets/lindao-emblem-transparent.png" alt="">
-       <div><strong>�堒�憡𥟇�</strong><small>LIN DAO ENTERTAINMENT</small></div>
+       <div><strong>林刀娛樂</strong><small>LIN DAO ENTERTAINMENT</small></div>
      </div>
      <nav class="admin96-nav">
-       ${nav.map((x,i)=>`<button data-tab="${x[0]}" class="tab ${i?'':'active'}"><i>${x[3]}</i><span><strong>${x[1]}</strong><small>${x[2]}</small></span><b>��</b></button>`).join('')}
+       ${nav.map((x,i)=>`<button data-tab="${x[0]}" class="tab ${i?'':'active'}"><i>${x[3]}</i><span><strong>${x[1]}</strong><small>${x[2]}</small></span><b>›</b></button>`).join('')}
      </nav>
-     <div class="admin96-brand-card"><div>��</div><strong>撠�平 繚 隤牐縑 繚 摰匧� 繚 �梁�</strong><small>PROFESSIONAL / TRUST / SAFETY<br>PRIVACY PROTECTION</small></div>
+     <div class="admin96-brand-card"><div>◆</div><strong>專業 · 誠信 · 安全 · 隱私</strong><small>PROFESSIONAL / TRUST / SAFETY<br>PRIVACY PROTECTION</small></div>
    </aside>
 
    <main class="admin96-main">
      <header class="admin96-topbar">
-       <div class="admin96-title"><span class="admin96-menu">��</span><div><h1>蝬梶�蝞∠�銝剖�</h1><small>MANAGEMENT CONSOLE</small></div></div>
+       <div class="admin96-title"><span class="admin96-menu">☰</span><div><h1>經紀管理中心</h1><small>MANAGEMENT CONSOLE</small></div></div>
        <div class="admin96-tools">
-         <div class="admin96-date"><span>��</span><b>${new Date().toLocaleDateString('zh-TW')}</b><small>${new Date().toLocaleDateString('zh-TW',{weekday:'short'})}</small></div>
-         <button id="refreshAll">�� <span>�齿鰵�渡�</span></button>
-         <button id="logoutBtn">�� <span>撠誩� / 蝬梶�</span></button>
+         <div class="admin96-date"><span>◷</span><b>${new Date().toLocaleDateString('zh-TW')}</b><small>${new Date().toLocaleDateString('zh-TW',{weekday:'short'})}</small></div>
+         <button id="refreshAll">⟳ <span>重新整理</span></button>
+         <button id="logoutBtn">♙ <span>小刀 / 經紀</span></button>
        </div>
      </header>
      <div class="admin96-content">
@@ -974,10 +974,10 @@ async function refreshAdmin(){
  const [b,a,t,v,n,w]=await Promise.all([sb.from('bookings').select('*').order('booking_date'),sb.from('applications').select('*').order('created_at',{ascending:false}),sb.from('talents').select('*').order('created_at',{ascending:false}),sb.from('venues').select('*').order('name'),sb.from('announcements').select('*').order('created_at',{ascending:false}),sb.from('weekly_sections').select('*').order('week_start',{ascending:false})]);
  S={bookings:b.data||[],applications:a.data||[],talents:t.data||[],venues:v.data||[],announcements:n.data||[],weeklySections:w.data||[]};
  el('stats').innerHTML=`
- <div class="admin96-stat gold"><div><span>隞𦠜𠯫撌脩Ⅱ隤�</span><small>TODAY CONFIRMED</small><strong>${S.bookings.filter(x=>x.booking_date===isoDay()&&x.status==='confirmed').length}</strong></div><i>��</i></div>
- <div class="admin96-stat rose"><div><span>敺�Ⅱ隤滚𥼚��</span><small>PENDING SCHEDULE</small><strong>${S.bookings.filter(x=>x.status==='pending').length}</strong></div><i>��</i></div>
- <div class="admin96-stat violet"><div><span>敺�祟�詨董��</span><small>PENDING APPROVAL</small><strong>${S.talents.filter(x=>x.status==='new'&&x.user_id).length}</strong></div><i>��</i></div>
- <div class="admin96-stat blue"><div><span>銝𠰴㨃銝剖���</span><small>ACTIVE TALENTS</small><strong>${S.talents.filter(x=>x.status==='active').length}</strong></div><i>��</i></div>`;
+ <div class="admin96-stat gold"><div><span>今日已確認</span><small>TODAY CONFIRMED</small><strong>${S.bookings.filter(x=>x.booking_date===isoDay()&&x.status==='confirmed').length}</strong></div><i>▣</i></div>
+ <div class="admin96-stat rose"><div><span>待確認報班</span><small>PENDING SCHEDULE</small><strong>${S.bookings.filter(x=>x.status==='pending').length}</strong></div><i>⌛</i></div>
+ <div class="admin96-stat violet"><div><span>待審核帳號</span><small>PENDING APPROVAL</small><strong>${S.talents.filter(x=>x.status==='new'&&x.user_id).length}</strong></div><i>♟</i></div>
+ <div class="admin96-stat blue"><div><span>上卡中公關</span><small>ACTIVE TALENTS</small><strong>${S.talents.filter(x=>x.status==='active').length}</strong></div><i>✪</i></div>`;
  renderAdminTab(document.querySelector('.tab.active')?.dataset.tab||'dashboard');
 }
 function renderAdminTab(tab){
@@ -998,15 +998,15 @@ function renderAdminTab(tab){
 function openLeaveModal(bookingId){
   const row=S.bookings.find(x=>x.id===bookingId);if(!row)return;
   const host=el('leaveModalHost')||document.body;
-  const types=['���','鈭见�','�毺���','�芸�','摰嗅滬�删�','�嗡�'];
+  const types=['病假','事假','生理假','喪假','家庭因素','其他'];
   const modal=document.createElement('div');
   modal.className='leave-modal-backdrop';
   modal.innerHTML=`<div class="leave-modal">
-    <div class="leave-modal-head"><div><p class="eyebrow">LEAVE</p><h3>${esc(row.nickname)}嚚�${esc(row.booking_date)}</h3></div><button class="leave-close" type="button">�</button></div>
+    <div class="leave-modal-head"><div><p class="eyebrow">LEAVE</p><h3>${esc(row.nickname)}｜${esc(row.booking_date)}</h3></div><button class="leave-close" type="button">×</button></div>
     <form id="leaveForm">
-      <label>��³�<select name="leave_type" required><option value="">隢钅������</option>${types.map(v=>`<option value="${v}" ${row.leave_type===v?'selected':''}>${v}</option>`).join('')}</select></label>
-      <label>隢见��笔�嚗誩�閮�<textarea name="leave_note" maxlength="300" placeholder="靘见�嚗𡁶䔄�鉝��振銝剛𠪊���鈭�">${esc(row.leave_note||'')}</textarea></label>
-      <div class="leave-modal-actions"><button class="btn btn-primary" type="submit">蝣箄�隢见�</button><button class="btn btn-outline leave-cancel" type="button">�𡝗�</button></div>
+      <label>假別<select name="leave_type" required><option value="">請選擇假別</option>${types.map(v=>`<option value="${v}" ${row.leave_type===v?'selected':''}>${v}</option>`).join('')}</select></label>
+      <label>請假原因／備註<textarea name="leave_note" maxlength="300" placeholder="例如：發燒、家中臨時有事">${esc(row.leave_note||'')}</textarea></label>
+      <div class="leave-modal-actions"><button class="btn btn-primary" type="submit">確認請假</button><button class="btn btn-outline leave-cancel" type="button">取消</button></div>
       <p id="leaveStatus" class="form-status"></p>
     </form>
   </div>`;
@@ -1020,7 +1020,7 @@ function openLeaveModal(bookingId){
     const f=e.currentTarget,b=f.querySelector('button[type=submit]');
     const x=Object.fromEntries(new FormData(f));
     b.disabled=true;
-    text('leaveStatus','�脣�銝凌��');
+    text('leaveStatus','儲存中…');
     const {error}=await sb.from('bookings').update({
       status:'leave',
       leave_type:x.leave_type,
@@ -1029,10 +1029,10 @@ function openLeaveModal(bookingId){
       leave_timing:(()=>{
         const shiftAt=new Date(row.booking_date+'T'+(row.start_time||'00:00:00')+'+08:00');
         const diff=shiftAt.getTime()-Date.now();
-        return diff<=24*60*60*1000?'�冽�隢见�':'銝��祈���';
+        return diff<=24*60*60*1000?'臨時請假':'一般請假';
       })()
     }).eq('id',bookingId);
-    if(error){console.error(error);text('leaveStatus','�� 隢见��餉�憭望�');b.disabled=false;return}
+    if(error){console.error(error);text('leaveStatus','❌ 請假登記失敗');b.disabled=false;return}
     close();
     await refreshAdmin();
     if(window.__adminBookingsTab)adminBookings(window.__adminBookingsTab);
@@ -1042,7 +1042,7 @@ function talentBookingRows(talent){
   return S.bookings.filter(x=>x.talent_id===talent.id || (talent.user_id&&x.user_id===talent.user_id));
 }
 function monthKey(dateStr){return String(dateStr||'').slice(0,7)}
-function monthLabel(key){const [y,m]=key.split('-');return `${y}/${Number(m)}�Ǒ}
+function monthLabel(key){const [y,m]=key.split('-');return `${y}/${Number(m)}月`}
 function calcTalentMonthlyAttendance(talent, key){
   const today=isoDay();
   const rows=talentBookingRows(talent).filter(x=>monthKey(x.booking_date)===key && x.booking_date<=today && ['confirmed','leave'].includes(x.status));
@@ -1054,7 +1054,7 @@ function calcTalentMonthlyAttendance(talent, key){
   const attended=days.filter(x=>!x.leave&&x.confirmed).length;
   const scheduled=attended+absent;
   const rate=scheduled?Math.round(attended/scheduled*1000)/10:0;
-  const counts={}; leaveRows.forEach(x=>{const k=x.leave_type||'�芸�憿�';counts[k]=(counts[k]||0)+1});
+  const counts={}; leaveRows.forEach(x=>{const k=x.leave_type||'未分類';counts[k]=(counts[k]||0)+1});
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   return {key,rows,attended,leaveRows,scheduled,absent,rate,counts,top:sorted[0]||null};
 }
@@ -1085,26 +1085,26 @@ function attendanceYearKeys(){
   return out;
 }
 function attendanceYearTrendSvg(years){
-  const valid=years.filter(x=>x.scheduled>0); if(!valid.length)return '<p class="empty">�桀�瘝埝�撟游漲�箏𠹻鞈����</p>';
+  const valid=years.filter(x=>x.scheduled>0); if(!valid.length)return '<p class="empty">目前沒有年度出勤資料。</p>';
   const W=760,H=235,L=42,R=18,T=18,B=42,iw=W-L-R,ih=H-T-B;
   const pts=years.map((x,i)=>({x:L+(years.length===1?iw/2:i*iw/(years.length-1)),y:T+(100-x.rate)*ih/100,...x}));
   const path=pts.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
   const grids=[0,25,50,75,100].map(v=>{const y=T+(100-v)*ih/100;return `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text x="${L-8}" y="${y+4}" text-anchor="end">${v}%</text>`}).join('');
-  const dots=pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="5"><title>${p.year} 撟� ${p.scheduled?p.rate+'%':'�∟���'}</title></circle><text class="month" x="${p.x}" y="${H-15}" text-anchor="middle">${p.year}</text>`).join('');
-  return `<div class="attendance-chart-wrap"><svg class="attendance-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="撟游漲�箏𠹻��隅�Ｗ�"><g class="grid">${grids}</g><path class="trend" d="${path}"/>${dots}</svg></div>`;
+  const dots=pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="5"><title>${p.year} 年 ${p.scheduled?p.rate+'%':'無資料'}</title></circle><text class="month" x="${p.x}" y="${H-15}" text-anchor="middle">${p.year}</text>`).join('');
+  return `<div class="attendance-chart-wrap"><svg class="attendance-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="年度出勤率趨勢圖"><g class="grid">${grids}</g><path class="trend" d="${path}"/>${dots}</svg></div>`;
 }
 function calcTalentAttendance(talent){
   const key=isoDay().slice(0,7), m=calcTalentMonthlyAttendance(talent,key);
   return {...m,rate:Math.round(m.rate)};
 }
 function attendanceTrendSvg(months){
-  const valid=months.filter(x=>x.scheduled>0); if(!valid.length)return '<p class="empty">�桀�瘝埝�頞喳�����箏𠹻鞈����</p>';
+  const valid=months.filter(x=>x.scheduled>0); if(!valid.length)return '<p class="empty">目前沒有足夠的月出勤資料。</p>';
   const W=760,H=250,L=42,R=18,T=18,B=42,iw=W-L-R,ih=H-T-B;
   const pts=months.map((x,i)=>({x:L+(months.length===1?iw/2:i*iw/(months.length-1)),y:T+(100-x.rate)*ih/100,...x}));
   const path=pts.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
   const grids=[0,25,50,75,100].map(v=>{const y=T+(100-v)*ih/100;return `<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text x="${L-8}" y="${y+4}" text-anchor="end">${v}%</text>`}).join('');
-  const dots=pts.map((p,i)=>`<circle cx="${p.x}" cy="${p.y}" r="4"><title>${monthLabel(p.key)} ${p.scheduled?p.rate+'%':'�∟���'}</title></circle>${(i%2===0||months.length<=6)?`<text class="month" x="${p.x}" y="${H-15}" text-anchor="middle">${monthLabel(p.key).replace(/^\d{4}\//,'')}</text>`:''}`).join('');
-  return `<div class="attendance-chart-wrap"><svg class="attendance-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="瘥𤩺��箏𠹻��隅�Ｗ�"><g class="grid">${grids}</g><path class="trend" d="${path}"/>${dots}</svg></div>`;
+  const dots=pts.map((p,i)=>`<circle cx="${p.x}" cy="${p.y}" r="4"><title>${monthLabel(p.key)} ${p.scheduled?p.rate+'%':'無資料'}</title></circle>${(i%2===0||months.length<=6)?`<text class="month" x="${p.x}" y="${H-15}" text-anchor="middle">${monthLabel(p.key).replace(/^\d{4}\//,'')}</text>`:''}`).join('');
+  return `<div class="attendance-chart-wrap"><svg class="attendance-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="每月出勤率趨勢圖"><g class="grid">${grids}</g><path class="trend" d="${path}"/>${dots}</svg></div>`;
 }
 function renderTalentAttendance(talentId, selectedYear){
   const t=S.talents.find(x=>x.id===talentId);if(!t)return;
@@ -1126,14 +1126,14 @@ function renderTalentAttendance(talentId, selectedYear){
   const yearStat=calcTalentYearlyAttendance(t,year);
   const leaveRows=yearStat.leaveRows.slice().sort((a,b)=>String(b.booking_date).localeCompare(String(a.booking_date)));
   const yearButtons=attendanceYearKeys().map(y=>`<button type="button" class="attendance-year-btn ${y===year?'active':''}" data-year="${y}">${y}</button>`).join('');
-  const monthRows=yearMonths.map(m=>`<div class="${m.isFuture?'future':''}"><span>${monthLabel(m.key)}${m.isCurrent?'嚗��脰�銝哨�':''}</span><span>${m.isFuture?'��':m.scheduled}</span><span>${m.isFuture?'��':m.attended}</span><span>${m.isFuture?'��':m.absent}</span><strong>${m.isFuture?'撠𡁏𧊋��':m.scheduled?m.rate+'%':'��'}</strong></div>`).join('');
-  el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-attendance">�� 餈𥪜�摰峕㟲�箏𠹻���</button><h2>${esc(t.nickname)}嚚𨅯枂�歹�隢见����</h2><p class="panel-note">�箏𠹻��誑�芰����蝞梹����㕑����敺贝��亦撩�扎��枂�斤�嚗嘥祕�𥕦枂�� 繩 �匧枂�� � 100%��</p></div></div>
-  <section class="attendance-year-picker"><span>�亦�撟游漲</span><div>${yearButtons}</div></section>
+  const monthRows=yearMonths.map(m=>`<div class="${m.isFuture?'future':''}"><span>${monthLabel(m.key)}${m.isCurrent?'（進行中）':''}</span><span>${m.isFuture?'—':m.scheduled}</span><span>${m.isFuture?'—':m.attended}</span><span>${m.isFuture?'—':m.absent}</span><strong>${m.isFuture?'尚未到':m.scheduled?m.rate+'%':'—'}</strong></div>`).join('');
+  el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-attendance">← 返回完整出勤分析</button><h2>${esc(t.nickname)}｜出勤／請假分析</h2><p class="panel-note">出勤率以自然月結算；所有請假一律計入缺勤。出勤率＝實際出勤 ÷ 應出勤 × 100%。</p></div></div>
+  <section class="attendance-year-picker"><span>查看年度</span><div>${yearButtons}</div></section>
   <div class="attendance-stats">
-    <div><span>${year} 撟湔��箏𠹻</span><strong>${yearStat.scheduled}</strong></div><div><span>${year} 撟游祕�𥕦枂��</span><strong>${yearStat.attended}</strong></div><div><span>${year} 撟渡撩�歹�隢见�</span><strong>${yearStat.absent}</strong></div><div><span>${year} 撟�${year===currentYear?'�桀�':'蝯鞟�'}�箏𠹻��</span><strong>${yearStat.scheduled?yearStat.rate+'%':'��'}</strong></div>
+    <div><span>${year} 年應出勤</span><strong>${yearStat.scheduled}</strong></div><div><span>${year} 年實際出勤</span><strong>${yearStat.attended}</strong></div><div><span>${year} 年缺勤／請假</span><strong>${yearStat.absent}</strong></div><div><span>${year} 年${year===currentYear?'目前':'結算'}出勤率</span><strong>${yearStat.scheduled?yearStat.rate+'%':'—'}</strong></div>
   </div>
-  <section class="attendance-card"><h3>${year} 撟湔���枂�斤�</h3><p class="panel-note">�湔𦻖�亦� 1嚚�12 ����𧢲���枂�斤�嚗𥕦��芸����隞賭��堒�閮����</p><div class="attendance-month-table"><div class="head"><span>��遢</span><span>�匧枂��</span><span>撖阡�</span><span>蝻箏𠹻</span><span>�箏𠹻��</span></div>${monthRows}</div></section>
-  <section class="attendance-card"><h3>${year} 撟渲��������躰酉</h3>${leaveRows.length?`<div class="attendance-leave-table"><div class="head"><span>�交�</span><span>��³�</span><span>憿𧼮�</span><span>隢见��躰酉</span></div>${leaveRows.map(x=>`<div><span>${esc(x.booking_date||'��')}</span><span>${esc(x.leave_type||'�芸�憿�')}</span><span>${esc(x.leave_timing||'�芸�憿�')}</span><span class="leave-note-cell">${esc(x.leave_note||'�∪�閮�')}</span></div>`).join('')}</div>`:'<p class="empty">�坔�见僑摨行��㕑��������</p>'}</section>`;
+  <section class="attendance-card"><h3>${year} 年每月出勤率</h3><p class="panel-note">直接查看 1～12 月每個月的出勤率；尚未到的月份不列入計算。</p><div class="attendance-month-table"><div class="head"><span>月份</span><span>應出勤</span><span>實際</span><span>缺勤</span><span>出勤率</span></div>${monthRows}</div></section>
+  <section class="attendance-card"><h3>${year} 年請假紀錄與備註</h3>${leaveRows.length?`<div class="attendance-leave-table"><div class="head"><span>日期</span><span>假別</span><span>類型</span><span>請假備註</span></div>${leaveRows.map(x=>`<div><span>${esc(x.booking_date||'—')}</span><span>${esc(x.leave_type||'未分類')}</span><span>${esc(x.leave_timing||'未分類')}</span><span class="leave-note-cell">${esc(x.leave_note||'無備註')}</span></div>`).join('')}</div>`:'<p class="empty">這個年度沒有請假紀錄。</p>'}</section>`;
   document.querySelector('.back-attendance').onclick=()=>renderAllAttendanceAnalysis();
   document.querySelectorAll('.attendance-year-btn').forEach(b=>b.onclick=()=>renderTalentAttendance(talentId,Number(b.dataset.year)));
 }
@@ -1141,9 +1141,9 @@ function renderAllAttendanceAnalysis(){
   const key=isoDay().slice(0,7);
   const rows=S.talents.filter(t=>['active','paused'].includes(t.status)).map(t=>({t,a:calcTalentMonthlyAttendance(t,key)})).sort((x,y)=>(x.a.scheduled?x.a.rate:101)-(y.a.scheduled?y.a.rate:101));
   const withData=rows.filter(x=>x.a.scheduled>0), avg=withData.length?Math.round(withData.reduce((n,x)=>n+x.a.rate,0)/withData.length*10)/10:0;
-  el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-dashboard">�� 餈𥪜�蝮質汗</button><h2>�券��祇�嚚𨀣���枂�文���</h2><p class="panel-note">甇���箏𠹻��誑�芰����蝞梹����㕑����敺讠�蝻箏𠹻����詨��𨅯��臬��𥕦僑摨佗��湔𦻖�亦�閰脣僑 1嚚�12 ��枂�斤�����������躰酉嚗�2026 撟渲絲��風�脣僑摨行����靽萘���</p></div></div>
-  <div class="attendance-stats"><div><span>蝯梯���遢</span><strong>${monthLabel(key)}</strong></div><div><span>�匧枂�方���</span><strong>${withData.length}</strong></div><div><span>�券��桀�撟喳�</span><strong>${withData.length?avg+'%':'��'}</strong></div><div><span>���蹱�嚗��80%嚗�</span><strong>${withData.filter(x=>x.a.rate<80).length}</strong></div></div>
-  <section class="attendance-card"><h3>${monthLabel(key)} �券��箏𠹻��</h3><div class="all-attendance-list">${rows.map(x=>`<button class="all-attendance-person" data-id="${x.t.id}">${talentAvatarMarkup(x.t,'stability-avatar',true)}<span class="copy"><b>${esc(x.t.nickname)}</b><small>�匧枂�� ${x.a.scheduled}嚚𨅯祕�� ${x.a.attended}嚚𦦵撩�� ${x.a.absent}</small></span><span class="bar"><i><em style="width:${x.a.scheduled?x.a.rate:0}%"></em></i></span><strong class="${x.a.scheduled?(x.a.rate<50?'bad':x.a.rate<80?'mid':'good'):''}">${x.a.scheduled?x.a.rate+'%':'��'}</strong></button>`).join('')||'<p class="empty">�桀�瘝埝��祇�鞈����</p>'}</div></section>`;
+  el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-dashboard">← 返回總覽</button><h2>全體公關｜每月出勤分析</h2><p class="panel-note">正式出勤率以自然月結算；所有請假一律算缺勤。點選公關後可切換年度，直接查看該年 1～12 月出勤率、請假紀錄與備註；2026 年起的歷史年度會持續保留。</p></div></div>
+  <div class="attendance-stats"><div><span>統計月份</span><strong>${monthLabel(key)}</strong></div><div><span>有出勤資料</span><strong>${withData.length}</strong></div><div><span>全體目前平均</span><strong>${withData.length?avg+'%':'—'}</strong></div><div><span>需留意（＜80%）</span><strong>${withData.filter(x=>x.a.rate<80).length}</strong></div></div>
+  <section class="attendance-card"><h3>${monthLabel(key)} 全體出勤率</h3><div class="all-attendance-list">${rows.map(x=>`<button class="all-attendance-person" data-id="${x.t.id}">${talentAvatarMarkup(x.t,'stability-avatar',true)}<span class="copy"><b>${esc(x.t.nickname)}</b><small>應出勤 ${x.a.scheduled}｜實際 ${x.a.attended}｜缺勤 ${x.a.absent}</small></span><span class="bar"><i><em style="width:${x.a.scheduled?x.a.rate:0}%"></em></i></span><strong class="${x.a.scheduled?(x.a.rate<50?'bad':x.a.rate<80?'mid':'good'):''}">${x.a.scheduled?x.a.rate+'%':'—'}</strong></button>`).join('')||'<p class="empty">目前沒有公關資料。</p>'}</div></section>`;
   document.querySelector('.back-dashboard').onclick=()=>renderAdminTab('dashboard');
   document.querySelectorAll('.all-attendance-person').forEach(b=>b.onclick=()=>renderTalentAttendance(b.dataset.id));
 }
@@ -1153,12 +1153,12 @@ function activateAdminGroup(group){
  document.querySelectorAll('.admin96-nav .tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===group));
 }
 function scheduleCenterBar(active){
- return `<div class="admin-unified-head"><div><p class="eyebrow">SCHEDULE CENTER</p><h2>�剖�銝剖�</h2><p>隞𦠜𠯫��𧋦�晞���蝣箄�����餌号銵券�銝剖銁�䔶��见𧑐�嫘��</p></div><button class="btn btn-primary unified-manual-booking">嚗� 鋆𦦵蒈�剛”</button></div>
+ return `<div class="admin-unified-head"><div><p class="eyebrow">SCHEDULE CENTER</p><h2>班務中心</h2><p>今日、本週、待確認與補登班表集中在同一個地方。</p></div><button class="btn btn-primary unified-manual-booking">＋ 補登班表</button></div>
  <div class="admin-segmented" role="tablist">
-   <button data-schedule-view="today" class="${active==='today'?'active':''}">隞𦠜𠯫�剛”</button>
-   <button data-schedule-view="week" class="${active==='week'?'active':''}">�祇�梁号銵�</button>
-   <button data-schedule-view="nextweek" class="${active==='nextweek'?'active':''}">銝钅�梁号銵�</button>
-   <button data-schedule-view="pendingall" class="${active==='pendingall'?'active':''}">敺�Ⅱ隤�</button>
+   <button data-schedule-view="today" class="${active==='today'?'active':''}">今日班表</button>
+   <button data-schedule-view="week" class="${active==='week'?'active':''}">本週班表</button>
+   <button data-schedule-view="nextweek" class="${active==='nextweek'?'active':''}">下週班表</button>
+   <button data-schedule-view="pendingall" class="${active==='pendingall'?'active':''}">待確認</button>
  </div>`;
 }
 function bindScheduleCenterBar(){
@@ -1167,12 +1167,12 @@ function bindScheduleCenterBar(){
 }
 function adminOperations(){
  activateAdminGroup('operations');
- el('panel').innerHTML=`<div class="admin-unified-head"><div><p class="eyebrow">OPERATIONS</p><h2>蝬𨅯�蝞∠�</h2><p>雿𡡞朌��身摰𡁻�銝剖銁�躰ㄐ嚗諹�撌血��詨鱓�芯��蹱�憭拍�甇���典�����賬��</p></div></div>
+ el('panel').innerHTML=`<div class="admin-unified-head"><div><p class="eyebrow">OPERATIONS</p><h2>綜合管理</h2><p>低頻率設定集中在這裡，讓左側選單只保留每天真正會用到的功能。</p></div></div>
  <div class="operations-hub">
-  <button data-op="hotelcards"><i>��</i><span><strong>銝𠹺��∠���</strong><small>蝞∠��祇��曆��∪�摰嗉��交�</small></span><b>�脣� ��</b></button>
-  <button data-op="venues"><i>��</i><span><strong>摨堒振蝞∠�</strong><small>蝞∠��舫����摨堒振鞈��</small></span><b>�脣� ��</b></button>
-  <button data-op="announcements"><i>��</i><span><strong>�砍�蝞∠�</strong><small>�澆���恣����𨅯���</small></span><b>�脣� ��</b></button>
-  <button data-op="attendance"><i>��</i><span><strong>�箏𠹻嚗讛������</strong><small>�亦��券��祇�瘥𤩺��箏𠹻��������甇瑕蟮撟游漲鞈��</small></span><b>�脣� ��</b></button>
+  <button data-op="hotelcards"><i>⌁</i><span><strong>上下卡紀錄</strong><small>管理公關曾上卡店家與日期</small></span><b>進入 →</b></button>
+  <button data-op="venues"><i>⌖</i><span><strong>店家管理</strong><small>管理可選擇的店家資料</small></span><b>進入 →</b></button>
+  <button data-op="announcements"><i>◫</i><span><strong>公告管理</strong><small>發布與管理公關公告</small></span><b>進入 →</b></button>
+  <button data-op="attendance"><i>◎</i><span><strong>出勤／請假分析</strong><small>查看全體公關每月出勤率、請假與歷史年度資料</small></span><b>進入 →</b></button>
  </div>`;
  document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>{ if(b.dataset.op==='attendance') return renderAllAttendanceAnalysis(); renderAdminTab(b.dataset.op); });
 }
@@ -1188,42 +1188,42 @@ function adminDashboard(){
  const weekRows=S.bookings.filter(x=>x.booking_date>=weekStart&&x.booking_date<=weekEnd&&!['cancelled','rejected'].includes(x.status));
  const weekLeave=weekRows.filter(x=>x.status==='leave');
  const weekPending=weekRows.filter(x=>x.status==='pending');
- const weekManual=weekRows.filter(x=>String(x.note||'').includes('蝬梶�鋆𦦵蒈'));
+ const weekManual=weekRows.filter(x=>String(x.note||'').includes('經紀補登'));
  const nextRows=confirmed.slice().sort((a,b)=>String(a.start_time||'99:99').localeCompare(String(b.start_time||'99:99')) || String(a.nickname||'').localeCompare(String(b.nickname||''))); 
  const todoCount=pending.length+newApps.length+newTalents.length;
  activateAdminGroup('dashboard');
  el('panel').innerHTML=`
- <div class="admin-home-head"><div><p class="eyebrow">TODAY AT A GLANCE</p><h2>隞𠰴予��閬�����鈭�</h2><p>擐㚚��芯��嗘�憭抵��祇�梁�甇��閬���∠�鞈��嚗𥕦��游��賡���葉�啣��厩恣��葉敹���</p></div></div>
+ <div class="admin-home-head"><div><p class="eyebrow">TODAY AT A GLANCE</p><h2>今天需要處理的事</h2><p>首頁只保留今天與本週真正需要掌握的資訊；完整功能都集中到對應管理中心。</p></div></div>
  <div class="admin-clean-grid">
    <section class="admin96-card admin96-action-card admin-clean-priority">
-    <div class="admin96-card-head"><h2>敺�齒鈭钅�</h2><small>${todoCount?'�芷＊蝷粹�閬���閧������':'�桀�瘝埝�敺�������'}</small></div>
+    <div class="admin96-card-head"><h2>待辦事項</h2><small>${todoCount?'只顯示需要你處理的項目':'目前沒有待處理事項'}</small></div>
     ${todoCount?`<div class="admin96-action-items">
-      ${pending.length?`<button class="dash-go" data-tab="pendingall"><i class="gold">��</i><span><b>敺�Ⅱ隤滨号銵�</b><small>${pending.length} 蝑��蝣箄�</small></span><strong>${pending.length}</strong><em>�閧� ��</em></button>`:''}
-      ${newApps.length?`<button class="dash-go" data-tab="applications"><i class="rose">��</i><span><b>�唬犖�唾�</b><small>${newApps.length} 蝑���閧�</small></span><strong>${newApps.length}</strong><em>�閧� ��</em></button>`:''}
-      ${newTalents.length?`<button class="dash-go" data-tab="talents"><i class="violet">��</i><span><b>敺��蝝�撖拇瓲</b><small>${newTalents.length} �见董��</small></span><strong>${newTalents.length}</strong><em>�閧� ��</em></button>`:''}
-    </div>`:`<div class="dashboard-all-clear"><strong>�� 隞𦠜𠯫敺�齒撌脫�蝛�</strong><span>�桀�瘝埝���閬���唾������𤌍��</span></div>`}
+      ${pending.length?`<button class="dash-go" data-tab="pendingall"><i class="gold">▣</i><span><b>待確認班表</b><small>${pending.length} 筆待確認</small></span><strong>${pending.length}</strong><em>處理 →</em></button>`:''}
+      ${newApps.length?`<button class="dash-go" data-tab="applications"><i class="rose">✦</i><span><b>新人申請</b><small>${newApps.length} 筆待處理</small></span><strong>${newApps.length}</strong><em>處理 →</em></button>`:''}
+      ${newTalents.length?`<button class="dash-go" data-tab="talents"><i class="violet">♢</i><span><b>待經紀審核</b><small>${newTalents.length} 個帳號</small></span><strong>${newTalents.length}</strong><em>處理 →</em></button>`:''}
+    </div>`:`<div class="dashboard-all-clear"><strong>✓ 今日待辦已清空</strong><span>目前沒有需要立即處理的項目。</span></div>`}
    </section>
    <section class="admin96-card admin-clean-today">
-    <div class="admin96-card-head"><h2>隞𦠜𠯫�剖�</h2><button class="text-btn dash-go" data-tab="today">�亦��剖�銝剖� ��</button></div>
+    <div class="admin96-card-head"><h2>今日班務</h2><button class="text-btn dash-go" data-tab="today">查看班務中心 →</button></div>
     <div class="admin96-ops">
-      <div><span>隞𦠜𠯫�剛”</span><strong>${todayRows.length}</strong></div>
-      <div><span>撌脩Ⅱ隤�</span><strong class="green">${confirmed.length}</strong></div>
-      <div><span>敺�Ⅱ隤�</span><strong class="amber">${todayRows.filter(x=>x.status==='pending').length}</strong></div>
-      <div><span>隢见�</span><strong class="red">${leave.length}</strong></div>
+      <div><span>今日班表</span><strong>${todayRows.length}</strong></div>
+      <div><span>已確認</span><strong class="green">${confirmed.length}</strong></div>
+      <div><span>待確認</span><strong class="amber">${todayRows.filter(x=>x.status==='pending').length}</strong></div>
+      <div><span>請假</span><strong class="red">${leave.length}</strong></div>
     </div>
-    ${nextRows.length?`<div class="dashboard-next"><small>隞𦠜𠯫銝羓号</small>${nextRows.map(x=>`<span><b>${esc((x.start_time||'').slice(0,5)||'��')}</b><strong>${esc(x.nickname)}</strong><em>${esc(x.venue||'�芸‵摨堒振')}</em></span>`).join('')}</div>`:'<div class="dashboard-next empty"><span>隞𠰴予�桀�瘝埝�撌脩Ⅱ隤滨号銵�</span></div>'}
-    ${leave.length?`<div class="admin-clean-leaves"><small>隞𦠜𠯫隢见�</small>${leave.slice(0,4).map(x=>`<span><b>${esc(x.nickname)}</b> 繚 ${esc(x.leave_type||'�芸�憿�')}${x.leave_note?` 繚 ${esc(x.leave_note)}`:''}</span>`).join('')}</div>`:''}
+    ${nextRows.length?`<div class="dashboard-next"><small>今日上班</small>${nextRows.map(x=>`<span><b>${esc((x.start_time||'').slice(0,5)||'—')}</b><strong>${esc(x.nickname)}</strong><em>${esc(x.venue||'未填店家')}</em></span>`).join('')}</div>`:'<div class="dashboard-next empty"><span>今天目前沒有已確認班表</span></div>'}
+    ${leave.length?`<div class="admin-clean-leaves"><small>今日請假</small>${leave.slice(0,4).map(x=>`<span><b>${esc(x.nickname)}</b> · ${esc(x.leave_type||'未分類')}${x.leave_note?` · ${esc(x.leave_note)}`:''}</span>`).join('')}</div>`:''}
    </section>
  </div>
  <section class="dashboard-week-strip">
-   <div><small>�祇�望�瘜�</small><strong>${twDate(weekStart)} 嚚� ${twDate(weekEnd)}</strong></div>
-   <span><b>${weekRows.length}</b> �梁号鈭箸活</span><span><b>${weekLeave.length}</b> 隢见�</span><span><b>${weekPending.length}</b> 敺�Ⅱ隤�</span><span><b>${weekManual.length}</b> 鋆𦦵蒈</span>
+   <div><small>本週概況</small><strong>${twDate(weekStart)} ～ ${twDate(weekEnd)}</strong></div>
+   <span><b>${weekRows.length}</b> 報班人次</span><span><b>${weekLeave.length}</b> 請假</span><span><b>${weekPending.length}</b> 待確認</span><span><b>${weekManual.length}</b> 補登</span>
  </section>
  <section class="dashboard-quick-actions">
-   <div><small>QUICK ACTIONS</small><h3>敹恍���雿�</h3></div>
-   <button data-quick="manual">嚗� 鋆𦦵蒈�剛”</button>
-   <button data-quick="talent">嚗� �啣��祇�</button>
-   <button data-quick="payroll">嚗� 撱箇��芾���</button>
+   <div><small>QUICK ACTIONS</small><h3>快速操作</h3></div>
+   <button data-quick="manual">＋ 補登班表</button>
+   <button data-quick="talent">＋ 新增公關</button>
+   <button data-quick="payroll">＄ 建立薪資單</button>
  </section>`;
  document.querySelectorAll('.dash-go').forEach(b=>b.onclick=()=>{
    const tab=b.dataset.tab;
@@ -1240,7 +1240,7 @@ function openManualBookingModal(){
   const host=document.body;
   const activeTalents=S.talents.filter(x=>x.status==='active');
   if(!activeTalents.length){
-    alert('�桀�瘝埝��䔶��∩葉�滨��祇��臭誑鋆𦦵蒈�剛”��');
+    alert('目前沒有「上卡中」的公關可以補登班表。');
     return;
   }
   const activeVenues=S.venues.filter(x=>x.is_active);
@@ -1251,53 +1251,53 @@ function openManualBookingModal(){
   const mondayOffset=dow===0?-6:1-dow;
   const thisMonday=new Date(todayDate); thisMonday.setUTCDate(todayDate.getUTCDate()+mondayOffset);
   let weekOffset=0;
-  const weekNames=['�曹�','�曹�','�曹�','�勗�','�曹�','�勗�','�望𠯫'];
+  const weekNames=['週一','週二','週三','週四','週五','週六','週日'];
   const isoUTC=d=>d.toISOString().slice(0,10);
 
   const modal=document.createElement('div');
   modal.className='leave-modal-backdrop';
   modal.innerHTML=`<div class="leave-modal manual-booking-modal">
     <div class="leave-modal-head">
-      <div><p class="eyebrow">MANUAL BOOKING</p><h3>撟怠��𡏭��餌号銵�</h3><p class="panel-note">�臭�甈∟��豢��煺��唳���𠯫嚗偦��啁��交���蝙�函㮾���摰嗚����栞��躰酉嚗䔶蒂�湔𦻖�㛖���歇蝣箄��溻��</p></div>
-      <button class="leave-close" type="button">�</button>
+      <div><p class="eyebrow">MANUAL BOOKING</p><h3>幫公關補登班表</h3><p class="panel-note">可一次複選星期一到星期日；選到的日期會使用相同店家、時間與備註，並直接列為「已確認」。</p></div>
+      <button class="leave-close" type="button">×</button>
     </div>
     <form id="manualBookingForm" novalidate>
-      <label>�祇�
+      <label>公關
         <select name="talent_id" required>
-          <option value="">隢钅������</option>
+          <option value="">請選擇公關</option>
           ${activeTalents.map(t=>`<option value="${t.id}">${esc(t.nickname)}</option>`).join('')}
         </select>
       </label>
 
       <div class="manual-week-picker">
         <div class="manual-week-toolbar">
-          <button type="button" class="mini-btn manual-prev-week">�� 銝𠹺���</button>
-          <div class="manual-week-title"><strong>�祇�梯���</strong><small id="manualWeekRange"></small></div>
+          <button type="button" class="mini-btn manual-prev-week">← 上一週</button>
+          <div class="manual-week-title"><strong>本週補登</strong><small id="manualWeekRange"></small></div>
           <div class="manual-week-actions">
-            <button type="button" class="mini-btn manual-this-week">�祇��</button>
-            <button type="button" class="mini-btn manual-next-week">銝钅�� ��</button>
+            <button type="button" class="mini-btn manual-this-week">本週</button>
+            <button type="button" class="mini-btn manual-next-week">下週 →</button>
           </div>
         </div>
-        <div id="manualDateGrid" class="date-grid weekly-date-grid manual-date-grid" aria-label="銴��鋆𦦵蒈�交�"></div>
-        <small class="panel-note">�航��詨�憭押��虾���銝𠹺��晞��𧋦�望�銝钅�梧�銝钅�望𠯫�煺��臭誑�湔𦻖鋆𦦵蒈嚗峕䲮靘踵��滚��鉝��</small>
+        <div id="manualDateGrid" class="date-grid weekly-date-grid manual-date-grid" aria-label="複選補登日期"></div>
+        <small class="panel-note">可複選多天。可切換上一週、本週或下週；下週日期也可以直接補登，方便提前安排。</small>
       </div>
 
-      <label>摨堒振
+      <label>店家
         <select name="venue" required>
-          <option value="">隢钅����摰�</option>
+          <option value="">請選擇店家</option>
           ${activeVenues.map(v=>`<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('')}
-          <option value="�嗡�">�嗡�</option>
+          <option value="其他">其他</option>
         </select>
       </label>
-      <label>銝羓号���
+      <label>上班時間
         <input type="time" name="start_time" required>
       </label>
-      <label>�躰酉
-        <textarea name="note" maxlength="500" placeholder="靘见�嚗𡁶�蝝�鋆𦦵蒈嚚𨅯祕�𥟇�銝羓号">蝬梶�鋆𦦵蒈</textarea>
+      <label>備註
+        <textarea name="note" maxlength="500" placeholder="例如：經紀補登｜實際有上班">經紀補登</textarea>
       </label>
       <div class="leave-modal-actions">
-        <button class="btn btn-primary" type="submit">蝣箄�鋆𦦵蒈���豢𠯫��</button>
-        <button class="btn btn-outline manual-booking-cancel" type="button">�𡝗�</button>
+        <button class="btn btn-primary" type="submit">確認補登所選日期</button>
+        <button class="btn btn-outline manual-booking-cancel" type="button">取消</button>
       </div>
       <p id="manualBookingStatus" class="form-status"></p>
     </form>
@@ -1323,9 +1323,9 @@ function openManualBookingModal(){
       </label>`;
     }).join('');
     const range=modal.querySelector('#manualWeekRange');
-    if(range)range.textContent=`${twDate(isoUTC(monday))} 嚚� ${twDate(isoUTC(sunday))}`;
+    if(range)range.textContent=`${twDate(isoUTC(monday))} ～ ${twDate(isoUTC(sunday))}`;
     const title=modal.querySelector('.manual-week-title strong');
-    if(title)title.textContent=weekOffset===0?'�祇�梯���':weekOffset===1?'銝钅�梯���':weekOffset===-1?'銝𢠃�梯���':weekOffset<0?`${Math.abs(weekOffset)} �勗�鋆𦦵蒈`:`${weekOffset} �勗�鋆𦦵蒈`;
+    if(title)title.textContent=weekOffset===0?'本週補登':weekOffset===1?'下週補登':weekOffset===-1?'上週補登':weekOffset<0?`${Math.abs(weekOffset)} 週前補登`:`${weekOffset} 週後補登`;
   };
   modal.querySelector('.manual-prev-week').onclick=()=>{weekOffset-=1;renderWeek()};
   modal.querySelector('.manual-this-week').onclick=()=>{weekOffset=0;renderWeek()};
@@ -1346,10 +1346,10 @@ function openManualBookingModal(){
     };
     const dates=[...form.querySelectorAll('input[name="manual_dates"]:checked')].map(i=>i.value);
     const t=S.talents.find(v=>v.id===x.talent_id);
-    if(!t){text('manualBookingStatus','�𩤃� 隢见��豢��祇���'); form.querySelector('[name="talent_id"]')?.focus(); return}
-    if(!dates.length){text('manualBookingStatus','�𩤃� 隢贝秐撠煾����憭押��');return}
-    if(!x.venue){text('manualBookingStatus','�𩤃� 隢钅����摰嗚��'); form.querySelector('[name="venue"]')?.focus(); return}
-    if(!x.start_time){text('manualBookingStatus','�𩤃� 隢见‵撖思��剜��瓐��'); form.querySelector('[name="start_time"]')?.focus(); return}
+    if(!t){text('manualBookingStatus','⚠️ 請先選擇公關。'); form.querySelector('[name="talent_id"]')?.focus(); return}
+    if(!dates.length){text('manualBookingStatus','⚠️ 請至少選擇一天。');return}
+    if(!x.venue){text('manualBookingStatus','⚠️ 請選擇店家。'); form.querySelector('[name="venue"]')?.focus(); return}
+    if(!x.start_time){text('manualBookingStatus','⚠️ 請填寫上班時間。'); form.querySelector('[name="start_time"]')?.focus(); return}
 
     const existing=S.bookings.filter(b=>
       b.talent_id===t.id &&
@@ -1362,25 +1362,25 @@ function openManualBookingModal(){
     if(existingDates.size){
       const details=[...existingDates].sort().map(d=>{
         const rows=existing.filter(b=>b.booking_date===d);
-        return `${twDate(d)}嚗�${rows.map(b=>`${b.start_time?.slice(0,5)||'�芸‵���'} ${b.venue||''}嚗�${b.status==='leave'?'隢见�':b.status==='confirmed'?'撌脩Ⅱ隤�':'敺�Ⅱ隤�'}嚗头).join('��')}`;
+        return `${twDate(d)}：${rows.map(b=>`${b.start_time?.slice(0,5)||'未填時間'} ${b.venue||''}（${b.status==='leave'?'請假':b.status==='confirmed'?'已確認':'待確認'}）`).join('、')}`;
       }).join('\n');
       if(!newDates.length){
-        text('manualBookingStatus','�𩤃� ���豢𠯫�罸�撌脩��厩号銵冽�隢见�蝝����瘝埝��滩�鋆𦦵蒈��');
+        text('manualBookingStatus','⚠️ 所選日期都已經有班表或請假紀錄，沒有重複補登。');
         return;
       }
-      if(!confirm(`${t.nickname} �� ${existingDates.size} 憭拙歇蝬枏��函号銵剁�隢见�嚗䨵n\n${details}\n\n�嗘��交���歲�𠬍��園� ${newDates.length} 憭拍匱蝥諹��鳴�蝣箏��𠬍�`))return;
+      if(!confirm(`${t.nickname} 有 ${existingDates.size} 天已經存在班表／請假：\n\n${details}\n\n這些日期會跳過，其餘 ${newDates.length} 天繼續補登，確定嗎？`))return;
     }
 
     btn.disabled=true;
-    text('manualBookingStatus',`鋆𦦵蒈 ${newDates.length} 憭拐葉�圳);
+    text('manualBookingStatus',`補登 ${newDates.length} 天中…`);
     const rows=newDates.map(date=>({
       nickname:t.nickname,
       contact:t.contact||'-',
       booking_date:date,
       venue:x.venue,
       start_time:x.start_time,
-      shift:'�芾�',
-      note:x.note||'蝬梶�鋆𦦵蒈',
+      shift:'自訂',
+      note:x.note||'經紀補登',
       status:'confirmed',
       user_id:t.user_id||null,
       talent_id:t.id
@@ -1388,12 +1388,12 @@ function openManualBookingModal(){
     const {error}=await sb.from('bookings').insert(rows);
     if(error){
       console.error(error);
-      text('manualBookingStatus','�� 鋆𦦵蒈憭望�嚗�'+(error.message||'隢讠�敺��閰�'));
+      text('manualBookingStatus','❌ 補登失敗：'+(error.message||'請稍後再試'));
       btn.disabled=false;
       return;
     }
     const skipped=dates.length-newDates.length;
-    alert(`�� 撌脫𤜯 ${t.nickname} 鋆𦦵蒈 ${newDates.length} 憭�${skipped?`嚗�𡖂�� ${skipped} 憭拙歇�厩����隞亥歲�𥳾:''}��`);
+    alert(`✅ 已替 ${t.nickname} 補登 ${newDates.length} 天${skipped?`，另有 ${skipped} 天已有紀錄所以跳過`:''}。`);
     close();
     await refreshAdmin();
     activateAdminGroup('schedule');
@@ -1418,16 +1418,16 @@ function adminBookings(tab){
  weekEnd=tab==='nextweek'?nextWeekEnd:currentWeekEnd,
  f=isWeekView?weekStart:today,
  to=isWeekView?weekEnd:f,
- title=tab==='today'?'隞𦠜𠯫�剛”':tab==='week'?'�祇�梁号銵�':tab==='nextweek'?'銝钅�梁号銵�':'���匧�蝣箄�',
+ title=tab==='today'?'今日班表':tab==='week'?'本週班表':tab==='nextweek'?'下週班表':'所有待確認',
  rows=tab==='pendingall'
    ? S.bookings.filter(x=>x.status==='pending')
    : S.bookings.filter(x=>x.booking_date>=f&&x.booking_date<=to&&!['cancelled','rejected'].includes(x.status)),
- L={pending:'敺�Ⅱ隤�',confirmed:'撌脩Ⅱ隤�',leave:'隢见�',rejected:'�芸���',cancelled:'撌脣�瘨�'};
+ L={pending:'待確認',confirmed:'已確認',leave:'請假',rejected:'未安排',cancelled:'已取消'};
 
  let html='',groups={};
 
  if(isWeekView){
-   const weekdays=['�����','���銝�','���鈭�','���銝�','�����','���鈭�','�����'];
+   const weekdays=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
    const byDate={};
    rows.forEach(x=>{
      if(!byDate[x.booking_date])byDate[x.booking_date]=[];
@@ -1440,7 +1440,7 @@ function adminBookings(tab){
        String(a.nickname||'').localeCompare(String(b.nickname||''))
      );
      const d=new Date(date+'T12:00:00');
-     const md=`${d.getMonth()+1}��${d.getDate()}�匝;
+     const md=`${d.getMonth()+1}月${d.getDate()}日`;
      const isToday=date===isoDay();
      const confirmed=dayRows.filter(x=>x.status==='confirmed').length;
      const pending=dayRows.filter(x=>x.status==='pending').length;
@@ -1453,8 +1453,8 @@ function adminBookings(tab){
            <h3>${md} <span>${weekdays[d.getDay()]}</span></h3>
          </div>
          <div class="week-date-summary">
-           <strong>${dayRows.length}</strong><span>雿滚���</span>
-           ${dayRows.length?`<small>撌脩Ⅱ隤� ${confirmed}${pending?` 繚 敺�Ⅱ隤� ${pending}`:''}${leave?` 繚 隢见� ${leave}`:''}</small>`:''}
+           <strong>${dayRows.length}</strong><span>位公關</span>
+           ${dayRows.length?`<small>已確認 ${confirmed}${pending?` · 待確認 ${pending}`:''}${leave?` · 請假 ${leave}`:''}</small>`:''}
          </div>
        </div>
        <div class="week-date-talents">
@@ -1463,15 +1463,15 @@ function adminBookings(tab){
              ${talentAvatarMarkup(S.talents.find(t=>t.id===x.talent_id)||{nickname:x.nickname},'week-talent-avatar',true)}
              <div class="week-talent-main">
                <div class="week-talent-name"><strong>${esc(x.nickname)}</strong><span class="booking-badge ${esc(x.status)}">${esc(L[x.status]||x.status)}</span></div>
-               <p>${esc(x.venue||'�芸‵摨堒振')} <i>繚</i> ${esc(x.start_time?.slice(0,5)||'�芸‵���')}</p>
+               <p>${esc(x.venue||'未填店家')} <i>·</i> ${esc(x.start_time?.slice(0,5)||'未填時間')}</p>
                ${x.note?`<small>${esc(x.note)}</small>`:''}
-               ${x.status==='leave'?`<small class="leave-summary">隢见�嚗�${esc(x.leave_type||'�芸�憿�')}嚚�${esc(x.leave_timing||'�芸�憿�')}${x.leave_note?`嚚�${esc(x.leave_note)}`:''}</small>`:''}
+               ${x.status==='leave'?`<small class="leave-summary">請假：${esc(x.leave_type||'未分類')}｜${esc(x.leave_timing||'未分類')}${x.leave_note?`｜${esc(x.leave_note)}`:''}</small>`:''}
              </div>
              <div class="week-talent-actions">
                <select class="status-select bs" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select>
-               <button class="delete-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">�芷膄</button>
+               <button class="delete-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">刪除</button>
              </div>
-           </article>`).join(''):`<div class="week-date-empty"><span>��</span><p>�坔予�桀�瘝埝��祇�銝羓号</p></div>`}
+           </article>`).join(''):`<div class="week-date-empty"><span>◇</span><p>這天目前沒有公關上班</p></div>`}
        </div>
      </section>`;
    }).join('');
@@ -1490,23 +1490,23 @@ function adminBookings(tab){
        <div class="talent-booking-head">
          <div>
            <strong>${esc(g.nickname)}</strong>
-           <small>${esc(g.contact||'�芸‵�舐窗�孵�')}嚚�${g.rows.length} 憭抬�撌脩Ⅱ隤� ${confirmedCount}嚚𡏭��� ${leaveCount}嚚𨅯�蝣箄� ${pendingCount}</small>
+           <small>${esc(g.contact||'未填聯絡方式')}｜${g.rows.length} 天｜已確認 ${confirmedCount}｜請假 ${leaveCount}｜待確認 ${pendingCount}</small>
          </div>
          <div class="bulk-actions">
-           ${pendingCount?`<button class="mini-btn confirm-all" data-key="${esc(g.key)}">�券�蝣箄�</button>`:''}
+           ${pendingCount?`<button class="mini-btn confirm-all" data-key="${esc(g.key)}">全部確認</button>`:''}
          </div>
        </div>
        <div class="talent-booking-days">
          ${g.rows.map(x=>`<div class="record compact-record ${x.status==='leave'?'leave-record':''}">
            <div class="record-main">
-             <strong>${esc(x.booking_date)}嚚�${esc(x.venue)}</strong>
-             <small>銝羓号 ${esc(x.start_time?.slice(0,5))}嚚�${esc(x.note||'�∪�閮�')}</small>
-             ${x.status==='leave'?`<small class="leave-summary">隢见�嚗�${esc(x.leave_type||'�芸�憿�')}嚚�${esc(x.leave_timing||'�芸�憿�')}${x.leave_note?`嚚�${esc(x.leave_note)}`:''}</small>`:''}
+             <strong>${esc(x.booking_date)}｜${esc(x.venue)}</strong>
+             <small>上班 ${esc(x.start_time?.slice(0,5))}｜${esc(x.note||'無備註')}</small>
+             ${x.status==='leave'?`<small class="leave-summary">請假：${esc(x.leave_type||'未分類')}｜${esc(x.leave_timing||'未分類')}${x.leave_note?`｜${esc(x.leave_note)}`:''}</small>`:''}
            </div>
            <div class="booking-row-actions">
              <select class="status-select bs" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select>
-             ${tab==='today'?`<button class="mini-btn leave-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">隢见�</button>`:''}
-             <button class="delete-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">�芷膄</button>
+             ${tab==='today'?`<button class="mini-btn leave-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">請假</button>`:''}
+             <button class="delete-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">刪除</button>
            </div>
          </div>`).join('')}
        </div>
@@ -1515,7 +1515,7 @@ function adminBookings(tab){
  }
 
  activateAdminGroup('schedule');
- el('panel').innerHTML=`${scheduleCenterBar(tab)}<div class="admin-section-title compact-title"><div><h2>${title}</h2><span>${rows.length} 蝑�</span></div></div>${isWeekView?`<div class="week-schedule-note"><span>��</span><p>${tab==='nextweek'?'�𣂼��亦��祇�撌脣𥼚����梁号銵剁��嫣噶摰㗇�鈭箏�����拍Ⅱ隤溻��':'靘脲𠯫��㟲��𧋦�梁号銵剁��湔𦻖�𧢲�憭拇��芯��祇�銝羓号嚗𥟇��餅風�脩号銵典虾�湔𦻖�其��嫘�諹��餌号銵具�溻��'}</p></div>${html}`:(rows.length?html:'<p class="empty">�桀�瘝埝��剛”��</p>')}
+ el('panel').innerHTML=`${scheduleCenterBar(tab)}<div class="admin-section-title compact-title"><div><h2>${title}</h2><span>${rows.length} 筆</span></div></div>${isWeekView?`<div class="week-schedule-note"><span>✦</span><p>${tab==='nextweek'?'提前查看公關已報的下週班表，方便安排人力與提早確認。':'依日期整理本週班表，直接看每天有哪些公關上班；漏登歷史班表可直接用上方「補登班表」。'}</p></div>${html}`:(rows.length?html:'<p class="empty">目前沒有班表。</p>')}
  <div id="leaveModalHost"></div>
  <div id="manualBookingHost"></div>`;
  bindScheduleCenterBar();
@@ -1529,7 +1529,7 @@ function adminBookings(tab){
    sel.disabled=true;
    const {error}=await sb.from('bookings').update({status:sel.value,leave_type:null,leave_note:null,leave_at:null,leave_timing:null}).eq('id',sel.dataset.id);
    sel.disabled=false;
-   if(error){console.error(error);alert('���𧢲凒�啣仃�梹�隢讠�敺��閰艾��');const row=S.bookings.find(x=>x.id===sel.dataset.id);if(row)sel.value=row.status;return}
+   if(error){console.error(error);alert('狀態更新失敗，請稍後再試。');const row=S.bookings.find(x=>x.id===sel.dataset.id);if(row)sel.value=row.status;return}
    await refreshAdmin();
    adminBookings(window.__adminBookingsTab||tab||'today');
  });
@@ -1537,10 +1537,10 @@ function adminBookings(tab){
  document.querySelectorAll('.leave-booking').forEach(btn=>btn.onclick=()=>openLeaveModal(btn.dataset.id));
 
  document.querySelectorAll('.delete-booking').forEach(btn=>btn.onclick=async()=>{
-   if(!confirm(`蝣箏�瘞訾��芷膄 ${btn.dataset.name} ${btn.dataset.date} �嗵��剛”�𠬍�`))return;
+   if(!confirm(`確定永久刪除 ${btn.dataset.name} ${btn.dataset.date} 這筆班表嗎？`))return;
    btn.disabled=true;
    const {error}=await sb.from('bookings').delete().eq('id',btn.dataset.id);
-   if(error){alert('�芷膄憭望�嚗𡁶𤌍�滚董����匧⏛�斗��琜�隢贝�蝯∠恣��摱閮剖���');btn.disabled=false;return}
+   if(error){alert('刪除失敗：目前帳號沒有刪除權限，請聯絡管理員設定。');btn.disabled=false;return}
    await refreshAdmin();
    adminBookings(window.__adminBookingsTab||tab||'today');
  });
@@ -1550,11 +1550,11 @@ function adminBookings(tab){
    if(!g)return;
    const ids=g.rows.filter(x=>x.status==='pending').map(x=>x.id);
    if(!ids.length)return;
-   if(!confirm(`蝣箏�閬��甈∠Ⅱ隤� ${g.nickname} �� ${ids.length} 憭拍号銵典�嚗鬮))return;
+   if(!confirm(`確定要一次確認 ${g.nickname} 的 ${ids.length} 天班表嗎？`))return;
    btn.disabled=true;
    const {error}=await sb.from('bookings').update({status:'confirmed'}).in('id',ids);
    if(error){
-     alert('�寞活蝣箄�憭望�嚗諹�蝔滚��滩岫��');
+     alert('批次確認失敗，請稍後再試。');
      console.error(error);
      btn.disabled=false;
      return;
@@ -1564,52 +1564,52 @@ function adminBookings(tab){
  });
 }
 function adminApplications(){
- const L={new:'敺��蝯�',contacted:'撌脰�蝯�',declined:'銝滩�蝯�'};
+ const L={new:'待聯絡',contacted:'已聯絡',declined:'不聯絡'};
 
  const cards=S.applications.map(x=>`
    <div class="application-card">
      <div class="application-head">
        <div>
-         <strong>${esc(x.nickname)}嚚�${esc(x.age)} 甇�</strong>
-         <small>${esc(x.area)}嚚𦦵𤚗隢𧢲��橒�${x.created_at?new Date(x.created_at).toLocaleString('zh-TW',{timeZone:TAIPEI_TZ}):'��'}</small>
+         <strong>${esc(x.nickname)}｜${esc(x.age)} 歲</strong>
+         <small>${esc(x.area)}｜申請時間：${x.created_at?new Date(x.created_at).toLocaleString('zh-TW',{timeZone:TAIPEI_TZ}):'—'}</small>
        </div>
        <select class="status-select aps" data-id="${x.id}">
-         <option value="new" ${x.status==='new'?'selected':''}>敺��蝯�</option>
-         <option value="contacted" ${x.status==='contacted'?'selected':''}>撌脰�蝯�</option>
-         <option value="declined">銝滩�蝯∴��芷膄嚗�</option>
+         <option value="new" ${x.status==='new'?'selected':''}>待聯絡</option>
+         <option value="contacted" ${x.status==='contacted'?'selected':''}>已聯絡</option>
+         <option value="declined">不聯絡（刪除）</option>
        </select>
      </div>
      <div class="application-grid">
-       <div class="application-field"><span>憪枏�</span><b>${esc(x.name||'�芸‵')}</b></div>
-       <div class="application-field"><span>�梁迂</span><b>${esc(x.nickname||'�芸‵')}</b></div>
-       <div class="application-field"><span>��𠯫</span><b>${esc(x.birthday||'�芸‵')}</b></div>
-       <div class="application-field"><span>撟湧翩</span><b>${esc(x.age||'�芸‵')}</b></div>
-       <div class="application-field"><span>撅���啣�</span><b>${esc(x.area||'�芸‵')}</b></div>
-       <div class="application-field"><span>�𧢲�嚗𦶣INE</span><b>${esc(x.contact||'�芸‵')}</b></div>
-       <div class="application-field"><span>Instagram</span><b>${esc(x.instagram||'�芣�靘�')}</b></div>
-       <div class="application-field"><span>�㗇��厩㮾�𨅯極雿𦦵�撽�</span><b>${esc(x.experience||'�芸‵')}</b></div>
-       <div class="application-field application-wide"><span>�臬極雿𨀣���</span><b>${esc(x.availability||'�芸‵')}</b></div>
-       <div class="application-field application-wide"><span>�喃�閫���批捆嚗讛���牧��</span><b class="application-note">${esc(x.note||'�芸‵')}</b></div>
-       <div class="application-field application-wide"><span>�唾����</span><b>${x.created_at?new Date(x.created_at).toLocaleString('zh-TW',{timeZone:TAIPEI_TZ}):'��'}</b></div>
-       <div class="application-field application-wide"><span>�桀��閧�����</span><b>${esc(x.status==='contacted'?'撌脰�蝯�':'敺��蝯�')}</b></div>
+       <div class="application-field"><span>姓名</span><b>${esc(x.name||'未填')}</b></div>
+       <div class="application-field"><span>暱稱</span><b>${esc(x.nickname||'未填')}</b></div>
+       <div class="application-field"><span>生日</span><b>${esc(x.birthday||'未填')}</b></div>
+       <div class="application-field"><span>年齡</span><b>${esc(x.age||'未填')}</b></div>
+       <div class="application-field"><span>居住地區</span><b>${esc(x.area||'未填')}</b></div>
+       <div class="application-field"><span>手機／LINE</span><b>${esc(x.contact||'未填')}</b></div>
+       <div class="application-field"><span>Instagram</span><b>${esc(x.instagram||'未提供')}</b></div>
+       <div class="application-field"><span>有沒有相關工作經驗</span><b>${esc(x.experience||'未填')}</b></div>
+       <div class="application-field application-wide"><span>可工作時間</span><b>${esc(x.availability||'未填')}</b></div>
+       <div class="application-field application-wide"><span>想了解的內容／補充說明</span><b class="application-note">${esc(x.note||'未填')}</b></div>
+       <div class="application-field application-wide"><span>申請時間</span><b>${x.created_at?new Date(x.created_at).toLocaleString('zh-TW',{timeZone:TAIPEI_TZ}):'—'}</b></div>
+       <div class="application-field application-wide"><span>目前處理狀態</span><b>${esc(x.status==='contacted'?'已聯絡':'待聯絡')}</b></div>
      </div>
    </div>`).join('');
 
- el('panel').innerHTML=`<div class="admin-section-title"><div><h2>�唬犖�唾�</h2><p class="panel-note">�豢��䔶��舐窗�齿�瘞訾��芷膄�嗵��唬犖�唾���</p></div><span>${S.applications.length} 蝑�</span></div>${cards||'<p class="empty">�桀�瘝埝��唬犖�唾���</p>'}`;
+ el('panel').innerHTML=`<div class="admin-section-title"><div><h2>新人申請</h2><p class="panel-note">選擇「不聯絡」會永久刪除這筆新人申請。</p></div><span>${S.applications.length} 筆</span></div>${cards||'<p class="empty">目前沒有新人申請。</p>'}`;
 
  document.querySelectorAll('.aps').forEach(s=>s.onchange=async()=>{
    const id=s.dataset.id;
    if(s.value==='declined'){
      const person=S.applications.find(x=>x.id===id);
-     if(!confirm(`蝣箏��䔶��舐窗��${person?.nickname||'�嗘��唬犖'}�𠬍�
+     if(!confirm(`確定「不聯絡」${person?.nickname||'這位新人'}嗎？
 
-蝣箄�敺峕�瘞訾��芷膄�嗵��唾�鞈����`)){
+確認後會永久刪除這筆申請資料。`)){
        s.value=person?.status==='contacted'?'contacted':'new';
        return;
      }
      s.disabled=true;
      const {error}=await sb.from('applications').delete().eq('id',id);
-     if(error){alert('�芷膄憭望�嚗諹�蝔滚��滩岫��');s.disabled=false;return}
+     if(error){alert('刪除失敗，請稍後再試。');s.disabled=false;return}
      await refreshAdmin();
      return;
    }
@@ -1622,27 +1622,27 @@ function adminApplications(){
 
 async function updateTalentStatus(talentId,nextStatus){
   const talent=S.talents.find(x=>String(x.id)===String(talentId));
-  if(!talent){ alert('�曆��圈�嗘��祇�鞈��嚗諹��齿鰵�渡�敺��閰艾��'); return false; }
+  if(!talent){ alert('找不到這位公關資料，請重新整理後再試。'); return false; }
 
   const normalized={
     active:'active', paused:'paused', new:'new', left:'left',
-    '���銝�':'active','銝𠰴㨃銝�':'active','�怠�':'paused','隡烐�銝�':'paused',
-    '敺�祟��':'new','敺��蝝�撖拇瓲':'new','撌脤𣪧��':'left','撌脖���':'left'
+    '合作中':'active','上卡中':'active','暫停':'paused','休檔中':'paused',
+    '待審核':'new','待經紀審核':'new','已離開':'left','已下卡':'left'
   }[nextStatus]||nextStatus;
 
   if(!['active','paused','new','left'].includes(normalized)){
-    alert('�⊥�颲刻��坔�见��𦦵��卝��');
+    alert('無法辨識這個公關狀態。');
     return false;
   }
 
   let payload={status:normalized};
   if(normalized==='paused'){
     const pausedUntil=nextMondayIso();
-    if(!confirm(`蝣箏�撠� ${talent.nickname||'�嗘��祇�'} 閮剔��䔶�瑼𥪯葉�滚�嚗髿n\n隡烐��喃��曹� ${pausedUntil}嚗𣬚訜憭拍頂蝯望��芸��Ｗ儔�䔶��∩葉�溻��`)) return false;
+    if(!confirm(`確定將 ${talent.nickname||'這位公關'} 設為「休檔中」嗎？\n\n休檔至下週一 ${pausedUntil}，當天系統會自動恢復「上卡中」。`)) return false;
     payload.paused_until=pausedUntil;
   }else{
-    if(normalized==='active' && !confirm(`蝣箏�撠� ${talent.nickname||'�嗘��祇�'} 閮剔��䔶��∩葉�滚�嚗鬮)) return false;
-    if(normalized==='left' && !confirm(`蝣箏�撠� ${talent.nickname||'�嗘��祇�'} 閮剔���歇銝见㨃�滚�嚗髿n\n銝见㨃敺峕�敺硺蜓閬���𨅯��桃宏�啜��歇銝见㨃�祇��㵪�銋见��舫���偶銋�⏛�方��蹱��Ｗ儔銝𠰴㨃��`)) return false;
+    if(normalized==='active' && !confirm(`確定將 ${talent.nickname||'這位公關'} 設為「上卡中」嗎？`)) return false;
+    if(normalized==='left' && !confirm(`確定將 ${talent.nickname||'這位公關'} 設為「已下卡」嗎？\n\n下卡後會從主要公關名單移到「已下卡公關」，之後可選擇永久刪除資料或恢復上卡。`)) return false;
     payload.paused_until=null;
   }
 
@@ -1657,7 +1657,7 @@ async function updateTalentStatus(talentId,nextStatus){
 
   if(error || !updated){
     console.error('updateTalentStatus failed',error);
-    alert('�祇����𧢲凒�啣仃�梹�隢讠�敺��閰艾��');
+    alert('公關狀態更新失敗，請稍後再試。');
     if(select){
       select.disabled=false;
       select.value=talent.status||'new';
@@ -1681,24 +1681,24 @@ function adminTalents(){
    <article class="talent-person-card">
      <div class="talent-person-photo">
        ${talentAvatarMarkup(x,'talent-card-avatar')}
-       <span class="talent-card-status status-${esc(x.status||'')}">${esc(({active:'銝𠰴㨃銝�',new:'敺�祟��',paused:'隡烐�銝�',left:'撌脖���'})[x.status]||x.status||'�芾身摰�')}</span>
+       <span class="talent-card-status status-${esc(x.status||'')}">${esc(({active:'上卡中',new:'待審核',paused:'休檔中',left:'已下卡'})[x.status]||x.status||'未設定')}</span>
      </div>
      <div class="talent-person-info">
        <div class="talent-person-name">
          <h3>${esc(x.nickname)}</h3>
-         ${x.user_id?'<span class="account-tag">撣唾�</span>':'<span class="legacy-tag">�芰�摰�</span>'}
+         ${x.user_id?'<span class="account-tag">帳號</span>':'<span class="legacy-tag">未綁定</span>'}
        </div>
-       <p>${esc(x.area||'�芸‵�啣�')}</p>
-       <small>${esc(x.contact||x.email||'�芸‵�舐窗�孵�')}</small>
-       ${x.status==='paused'&&x.paused_until?`<small class="pause-until">隡烐��� ${esc(x.paused_until)}</small>`:''}
+       <p>${esc(x.area||'未填地區')}</p>
+       <small>${esc(x.contact||x.email||'未填聯絡方式')}</small>
+       ${x.status==='paused'&&x.paused_until?`<small class="pause-until">休檔至 ${esc(x.paused_until)}</small>`:''}
      </div>
      <div class="talent-card-actions">
-       <button class="mini-btn talent-profile-view" data-id="${x.id}">摰峕㟲鞈��</button>
-       <button class="mini-btn talent-attendance" data-id="${x.id}">蝛拙�摨�</button>
-       <button class="mini-btn view-14" data-id="${x.id}">餈�14憭�</button>
+       <button class="mini-btn talent-profile-view" data-id="${x.id}">完整資料</button>
+       <button class="mini-btn talent-attendance" data-id="${x.id}">穩定度</button>
+       <button class="mini-btn view-14" data-id="${x.id}">近14天</button>
      </div>
      <select class="status-select ts talent-card-select" data-id="${x.id}">
-       ${[['active','銝𠰴㨃銝�'],['new','敺��蝝�撖拇瓲'],['paused','隡烐�銝�'],['left','撌脖���']].map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}
+       ${[['active','上卡中'],['new','待經紀審核'],['paused','休檔中'],['left','已下卡']].map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}
      </select>
    </article>`;
 
@@ -1708,29 +1708,29 @@ function adminTalents(){
      <div class="talent-left-info">
        <small>OFF CARD</small>
        <h3>${esc(x.nickname)}</h3>
-       <p>${esc(x.area||'�芸‵�啣�')} 繚 ${esc(x.contact||x.email||'�芸‵�舐窗�孵�')}</p>
+       <p>${esc(x.area||'未填地區')} · ${esc(x.contact||x.email||'未填聯絡方式')}</p>
      </div>
      <div class="talent-left-actions">
-       <button class="mini-btn restore-talent" data-id="${x.id}">�Ｗ儔銝𠰴㨃</button>
-       <button class="mini-btn danger permanent-delete-talent" data-id="${x.id}" data-name="${esc(x.nickname)}">瘞訾��芷膄鞈��</button>
+       <button class="mini-btn restore-talent" data-id="${x.id}">恢復上卡</button>
+       <button class="mini-btn danger permanent-delete-talent" data-id="${x.id}" data-name="${esc(x.nickname)}">永久刪除資料</button>
      </div>
    </article>`;
 
  el('panel').innerHTML=`
  <div class="admin-section-title talent-grid-title">
-   <div><h2>�祇�蝞∠�</h2><p class="panel-note">銝𠰴㨃銝哨�隡烐�銝剖��𣈯＊蝷箏銁銝餉��滚鱓嚗𥕦歇銝见㨃��宏�唬��寧崕蝡见��麄��</p></div>
-   <button class="mini-btn" id="addTalent">嚗� �啣��芰�摰𡁜���</button>
+   <div><h2>公關管理</h2><p class="panel-note">上卡中／休檔中公關顯示在主要名單；已下卡會移到下方獨立區域。</p></div>
+   <button class="mini-btn" id="addTalent">＋ 新增未綁定公關</button>
  </div>
 
  <div class="talent-card-grid">
-   ${activeTalents.map(card).join('')||'<p class="empty">�桀�瘝埝�銝𠰴㨃銝剔��祇���</p>'}
+   ${activeTalents.map(card).join('')||'<p class="empty">目前沒有上卡中的公關。</p>'}
  </div>
 
  ${leftTalents.length?`
  <section class="left-talent-section">
    <div class="left-talent-section-head">
-     <div><p class="eyebrow">OFF CARD TALENTS</p><h3>撌脖��∪���</h3><small>�躰ㄐ銝齿��箇𣶹�其蜓閬���𨅯��柴��Ⅱ隤滢��漤�閬���舀偶銋�⏛�扎��</small></div>
-     <span>${leftTalents.length} 雿�</span>
+     <div><p class="eyebrow">OFF CARD TALENTS</p><h3>已下卡公關</h3><small>這裡不會出現在主要公關名單。確認不再需要後可永久刪除。</small></div>
+     <span>${leftTalents.length} 位</span>
    </div>
    <div class="left-talent-list">${leftTalents.map(leftCard).join('')}</div>
  </section>`:''}
@@ -1750,19 +1750,19 @@ function adminTalents(){
  el('addTalent').onclick=renderAddTalentForm;
 }
 
-async function permanentDeleteTalent(talentId,nickname='�嗘��祇�'){
+async function permanentDeleteTalent(talentId,nickname='這位公關'){
   const talent=S.talents.find(x=>String(x.id)===String(talentId));
   if(!talent)return;
 
-  const first=confirm(`蝣箏�瘞訾��芷膄��${nickname}�滨��祇�鞈���𠬍�\\n\\n甇斗�雿𦦵�瘜訫儔�麄��`);
+  const first=confirm(`確定永久刪除「${nickname}」的公關資料嗎？\\n\\n此操作無法復原。`);
   if(!first)return;
-  const second=confirm(`��敺𣬚Ⅱ隤㵪��毺�閬�偶銋�⏛�扎��${nickname}�㵪�\\n\\n�芾��柴���摨𦯀�銝见㨃蝝������迨�祇��湔𦻖�𡏭�����坔虾�賣�銝�韏瑕⏛�扎��`);
+  const second=confirm(`最後確認：真的要永久刪除「${nickname}」？\\n\\n薪資單、酒店上下卡紀錄等與此公關直接關聯的資料可能會一起刪除。`);
   if(!second)return;
 
   const {error}=await sb.from('talents').delete().eq('id',talentId);
   if(error){
     console.error('permanentDeleteTalent failed',error);
-    alert('�芷膄憭望�嚗�'+(error.message||'隢讠�敺��閰�'));
+    alert('刪除失敗：'+(error.message||'請稍後再試'));
     return;
   }
 
@@ -1790,50 +1790,50 @@ function renderAddTalentForm(){
       <section class="unbound-talent-modal">
         <div class="unbound-talent-head">
           <div>
-            <p class="eyebrow">QUICK TALENT CREATE ��</p>
-            <h3>�啣��芰�摰𡁜���</h3>
-            <p>��遣蝡见��𡏭��辷�銋见��滩��砌犖閮餃�嚗讐�摰𡁜董�煺��臭誑��</p>
+            <p class="eyebrow">QUICK TALENT CREATE ✦</p>
+            <h3>新增未綁定公關</h3>
+            <p>先建立公關資料，之後再讓本人註冊／綁定帳號也可以。</p>
           </div>
-          <button type="button" class="unbound-close" aria-label="�𣈯�">�</button>
+          <button type="button" class="unbound-close" aria-label="關閉">×</button>
         </div>
 
         <form id="unboundTalentForm" class="unbound-talent-form">
           <div class="unbound-grid">
             <label>
-              <span>�嘥�嚗𤩺黸蝔� <b>*</b></span>
-              <input name="nickname" maxlength="40" required placeholder="靘见�嚗𡁜�蝐�">
+              <span>藝名／暱稱 <b>*</b></span>
+              <input name="nickname" maxlength="40" required placeholder="例如：娜米">
             </label>
             <label>
-              <span>憪枏�</span>
-              <input name="name" maxlength="40" placeholder="�詨‵">
+              <span>姓名</span>
+              <input name="name" maxlength="40" placeholder="選填">
             </label>
             <label>
-              <span>�𧢲�嚗𦶣INE</span>
-              <input name="contact" maxlength="80" placeholder="�詨‵">
+              <span>手機／LINE</span>
+              <input name="contact" maxlength="80" placeholder="選填">
             </label>
             <label>
-              <span>撅���啣�</span>
-              <input name="area" maxlength="40" placeholder="靘见�嚗𡁜蝱�𨰜��鰵��">
+              <span>居住地區</span>
+              <input name="area" maxlength="40" placeholder="例如：台北、新北">
             </label>
             <label>
-              <span>�桀�����</span>
+              <span>目前狀態</span>
               <select name="status">
-                <option value="active">銝𠰴㨃銝�</option>
-                <option value="new">敺��蝝�撖拇瓲</option>
-                <option value="paused">隡烐�銝�</option>
-                <option value="left">撌脖���</option>
+                <option value="active">上卡中</option>
+                <option value="new">待經紀審核</option>
+                <option value="paused">休檔中</option>
+                <option value="left">已下卡</option>
               </select>
             </label>
           </div>
 
           <div class="unbound-notice">
-            <span>��</span>
-            <p>�嗵�鞈��銝齿�撱箇��餃�撣唾�嚗峕�隞交����蝷箇��峕𧊋蝬���溻��</p>
+            <span>◇</span>
+            <p>這筆資料不會建立登入帳號，所以會先標示為「未綁定」。</p>
           </div>
 
           <div class="unbound-actions">
-            <button class="btn btn-primary" type="submit">撱箇��祇�鞈��</button>
-            <button class="btn btn-outline unbound-cancel" type="button">�𡝗�</button>
+            <button class="btn btn-primary" type="submit">建立公關資料</button>
+            <button class="btn btn-outline unbound-cancel" type="button">取消</button>
           </div>
           <p id="unboundTalentStatus" class="form-status"></p>
         </form>
@@ -1852,18 +1852,18 @@ function renderAddTalentForm(){
     e.preventDefault();
     const submit=form.querySelector('button[type="submit"]');
     submit.disabled=true;
-    text('unboundTalentStatus','撱箇�銝凌��');
+    text('unboundTalentStatus','建立中…');
 
     const x=Object.fromEntries(new FormData(form));
     const nickname=String(x.nickname||'').trim();
     if(!nickname){
-      text('unboundTalentStatus','�� 隢贝撓�亥��㵪��梁迂��');
+      text('unboundTalentStatus','❌ 請輸入藝名／暱稱。');
       submit.disabled=false;
       return;
     }
 
     const duplicate=S.talents.find(t=>String(t.nickname||'').trim().toLowerCase()===nickname.toLowerCase());
-    if(duplicate && !confirm(`�桀�撌脩��劐�雿溻��${nickname}�溻��\n\n隞滨�閬�鰵憓𧼮𡖂銝�蝑�𧊋蝬���祇��𠬍�`)){
+    if(duplicate && !confirm(`目前已經有一位「${nickname}」。\n\n仍然要新增另一筆未綁定公關嗎？`)){
       submit.disabled=false;
       text('unboundTalentStatus','');
       return;
@@ -1888,12 +1888,12 @@ function renderAddTalentForm(){
 
     if(error){
       console.error('create unbound talent failed',error);
-      text('unboundTalentStatus','�� 撱箇�憭望�嚗�'+(error.message||'隢讠�敺��閰�'));
+      text('unboundTalentStatus','❌ 建立失敗：'+(error.message||'請稍後再試'));
       submit.disabled=false;
       return;
     }
 
-    text('unboundTalentStatus','�� 撌脣遣蝡𧢲𧊋蝬���祇���');
+    text('unboundTalentStatus','✅ 已建立未綁定公關。');
     if(data)S.talents.push(data);
     await refreshAdmin();
     setTimeout(()=>renderAdminTab('talents'),350);
@@ -1904,70 +1904,70 @@ function renderAddTalentForm(){
 function renderTalentProfileAdmin(talentId){
  const t=S.talents.find(x=>x.id===talentId);if(!t)return;
  const a=calcTalentAttendance(t);
- const statusLabel={active:'銝𠰴㨃銝�',paused:'隡烐�銝�',new:'敺�祟��'}[t.status]||t.status;
+ const statusLabel={active:'上卡中',paused:'休檔中',new:'待審核'}[t.status]||t.status;
  el('panel').innerHTML=`
- <div class="admin-section-title"><div><button class="back-talents">�� 餈𥪜��祇�蝞∠�</button><h2>${esc(t.nickname)}嚚𨅯�衤犖撅交風</h2></div></div>
+ <div class="admin-section-title"><div><button class="back-talents">← 返回公關管理</button><h2>${esc(t.nickname)}｜個人履歷</h2></div></div>
 
  <section class="talent-resume-card">
    <aside class="talent-resume-photo">
      ${talentAvatarMarkup(t,'talent-resume-avatar')}
-     <h3>${esc(t.nickname||'�芾身摰𡁏黸蝔�')}</h3>
+     <h3>${esc(t.nickname||'未設定暱稱')}</h3>
      <span class="resume-status status-${esc(t.status||'')}">${esc(statusLabel)}</span>
-     <small>${esc(t.area||'�芸‵�啣�')}</small>
+     <small>${esc(t.area||'未填地區')}</small>
    </aside>
 
    <div class="talent-resume-body">
      <div class="talent-resume-heading">
-       <div><p class="eyebrow">TALENT PROFILE</p><h2>${esc(t.name||t.nickname||'�芸‵憪枏�')}</h2></div>
+       <div><p class="eyebrow">TALENT PROFILE</p><h2>${esc(t.name||t.nickname||'未填姓名')}</h2></div>
        <div class="resume-mini-stats">
-         <div><span>撟湧翩</span><b>${esc(ageFromBirthday(t.birthday))}</b></div>
-         <div><span>頨恍�</span><b>${t.height_cm?esc(t.height_cm)+' cm':'��'}</b></div>
-         <div><span>蝛拙�摨�</span><b>${a.scheduled?a.rate+'%':'��'}</b></div>
+         <div><span>年齡</span><b>${esc(ageFromBirthday(t.birthday))}</b></div>
+         <div><span>身高</span><b>${t.height_cm?esc(t.height_cm)+' cm':'—'}</b></div>
+         <div><span>穩定度</span><b>${a.scheduled?a.rate+'%':'—'}</b></div>
        </div>
      </div>
 
      <div class="application-grid talent-resume-grid">
-      <div class="application-field"><span>憪枏�</span><b>${esc(t.name||'�芸‵')}</b></div>
-      <div class="application-field"><span>�梁迂</span><b>${esc(t.nickname||'�芸‵')}</b></div>
-      <div class="application-field"><span>��𠯫</span><b>${esc(t.birthday||'�芸‵')}</b></div>
-      <div class="application-field"><span>�批³�</span><b>${esc(t.gender||'�芸‵')}</b></div>
-      <div class="application-field"><span>撅���啣�</span><b>${esc(t.area||'�芸‵')}</b></div>
-      <div class="application-field"><span>�𧢲�嚗𦶣INE</span><b>${esc(t.contact||'�芸‵')}</b></div>
-      <div class="application-field"><span>Instagram</span><b>${esc(t.instagram||'�芸‵')}</b></div>
-      <div class="application-field"><span>Email</span><b>${esc(t.email||'�芸‵')}</b></div>
-      <div class="application-field"><span>頨恍�</span><b>${t.height_cm?esc(t.height_cm)+' cm':'�芸‵'}</b></div>
-      <div class="application-field"><span>擃娪�</span><b>${t.weight_kg?esc(t.weight_kg)+' kg':'�芸‵'}</b></div>
-      <div class="application-field"><span>銵���</span><b>${esc(t.blood_type||'�芸‵')}</b></div>
-      <div class="application-field"><span>蝺𦠜�亥�蝯∩犖</span><b>${esc(t.emergency_contact||'�芸‵')}</b></div>
-      <div class="application-field"><span>蝺𦠜�亥�蝯⊿𤓖閰�</span><b>${esc(t.emergency_phone||'�芸‵')}</b></div>
+      <div class="application-field"><span>姓名</span><b>${esc(t.name||'未填')}</b></div>
+      <div class="application-field"><span>暱稱</span><b>${esc(t.nickname||'未填')}</b></div>
+      <div class="application-field"><span>生日</span><b>${esc(t.birthday||'未填')}</b></div>
+      <div class="application-field"><span>性別</span><b>${esc(t.gender||'未填')}</b></div>
+      <div class="application-field"><span>居住地區</span><b>${esc(t.area||'未填')}</b></div>
+      <div class="application-field"><span>手機／LINE</span><b>${esc(t.contact||'未填')}</b></div>
+      <div class="application-field"><span>Instagram</span><b>${esc(t.instagram||'未填')}</b></div>
+      <div class="application-field"><span>Email</span><b>${esc(t.email||'未填')}</b></div>
+      <div class="application-field"><span>身高</span><b>${t.height_cm?esc(t.height_cm)+' cm':'未填'}</b></div>
+      <div class="application-field"><span>體重</span><b>${t.weight_kg?esc(t.weight_kg)+' kg':'未填'}</b></div>
+      <div class="application-field"><span>血型</span><b>${esc(t.blood_type||'未填')}</b></div>
+      <div class="application-field"><span>緊急聯絡人</span><b>${esc(t.emergency_contact||'未填')}</b></div>
+      <div class="application-field"><span>緊急聯絡電話</span><b>${esc(t.emergency_phone||'未填')}</b></div>
      </div>
 
      <section class="admin-bank-card">
        <div class="admin-bank-card-head">
-         <div><p class="eyebrow">PAYMENT ACCOUNT ��</p><h3>�芾��舀狡鞈��</h3></div>
-         <span>${t.bank_code&&t.bank_account?'鞈��撌脣‵撖�':'撠𡁏𧊋摰峕㟲憛怠神'}</span>
+         <div><p class="eyebrow">PAYMENT ACCOUNT ◇</p><h3>薪資匯款資料</h3></div>
+         <span>${t.bank_code&&t.bank_account?'資料已填寫':'尚未完整填寫'}</span>
        </div>
        <div class="admin-bank-account-row">
          <div class="admin-bank-code">
-           <small>��銵䔶誨蝣�</small>
-           <strong>${esc(t.bank_code||'�芸‵')}</strong>
+           <small>銀行代碼</small>
+           <strong>${esc(t.bank_code||'未填')}</strong>
          </div>
-         <i>��</i>
+         <i>—</i>
          <div class="admin-bank-number">
-           <small>��銵�董��</small>
-           <strong>${esc(t.bank_account||'�芸‵')}</strong>
+           <small>銀行帳號</small>
+           <strong>${esc(t.bank_account||'未填')}</strong>
          </div>
-         ${t.bank_account?`<button type="button" class="copy-bank-account" data-bank="${esc(t.bank_account)}">銴�ˊ撣唾�</button>`:''}
+         ${t.bank_account?`<button type="button" class="copy-bank-account" data-bank="${esc(t.bank_account)}">複製帳號</button>`:''}
        </div>
-       <p>甇方��嗵眏�祇��砌犖�潦���衤犖鞈�� �� �芾��舀狡撣唾��滚‵撖怒��</p>
+       <p>此資料由公關本人於「個人資料 → 薪資匯款帳號」填寫。</p>
      </section>
 
      <div class="profile-hub">
-       <button class="mini-btn profile-bookings" data-id="${t.id}">餈烐��剛”</button>
-       <button class="mini-btn profile-attendance" data-id="${t.id}">�箏𠹻嚗讛������</button>
-       <button class="mini-btn profile-payroll" data-id="${t.id}">�芾�蝝���</button>
-       <button class="mini-btn profile-trend" data-id="${t.id}">瘥誯�梁��貉隅��</button>
-       <button class="mini-btn profile-hotels" data-id="${t.id}">�曆��∪�摰�</button>
+       <button class="mini-btn profile-bookings" data-id="${t.id}">近期班表</button>
+       <button class="mini-btn profile-attendance" data-id="${t.id}">出勤／請假分析</button>
+       <button class="mini-btn profile-payroll" data-id="${t.id}">薪資紀錄</button>
+       <button class="mini-btn profile-trend" data-id="${t.id}">每週節數趨勢</button>
+       <button class="mini-btn profile-hotels" data-id="${t.id}">曾上卡店家</button>
      </div>
    </div>
  </section>`;
@@ -1980,11 +1980,11 @@ function renderTalentProfileAdmin(talentId){
    const btn=e.currentTarget,account=btn.dataset.bank||'';
    try{
      await navigator.clipboard.writeText(account);
-     const old=btn.textContent;btn.textContent='撌脰�鋆� ��';
+     const old=btn.textContent;btn.textContent='已複製 ✓';
      setTimeout(()=>btn.textContent=old,1400);
    }catch(err){
      console.error(err);
-     alert('銴�ˊ憭望�嚗諹��见��詨�撣唾���');
+     alert('複製失敗，請手動選取帳號。');
    }
  });
  document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
@@ -1999,23 +1999,23 @@ function renderTalent14Days(talentId){
    return same && x.booking_date>=from && x.booking_date<=to;
  }).sort((a,b)=>a.booking_date.localeCompare(b.booking_date));
 
- const L={pending:'敺�Ⅱ隤�',confirmed:'撌脩Ⅱ隤�',leave:'隢见�',rejected:'�芸���',cancelled:'撌脣�瘨�'};
- el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-talents">�� 餈𥪜��祇�蝞∠�</button><h2>${esc(t.nickname)}嚚𡏭� 14 憭拙𥼚��</h2><p class="panel-note">${esc(from)} 嚚� ${esc(to)}嚚𨅯� ${rows.length} 蝑�</p></div></div>
- ${rows.length?rows.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.booking_date)}嚚�${esc(x.venue)}</strong><small>銝羓号 ${esc(x.start_time?.slice(0,5))}嚚�${esc(x.note||'�∪�閮�')}</small></div><div class="booking-row-actions"><select class="status-select t14-status" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select><button class="delete-booking t14-delete" data-id="${x.id}" data-date="${esc(x.booking_date)}">�芷膄</button></div></div>`).join(''):'<p class="empty">�嗘��祇�餈� 14 憭拇��匧𥼚�准��</p>'}`;
+ const L={pending:'待確認',confirmed:'已確認',leave:'請假',rejected:'未安排',cancelled:'已取消'};
+ el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-talents">← 返回公關管理</button><h2>${esc(t.nickname)}｜近 14 天報班</h2><p class="panel-note">${esc(from)} ～ ${esc(to)}｜共 ${rows.length} 筆</p></div></div>
+ ${rows.length?rows.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.booking_date)}｜${esc(x.venue)}</strong><small>上班 ${esc(x.start_time?.slice(0,5))}｜${esc(x.note||'無備註')}</small></div><div class="booking-row-actions"><select class="status-select t14-status" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select><button class="delete-booking t14-delete" data-id="${x.id}" data-date="${esc(x.booking_date)}">刪除</button></div></div>`).join(''):'<p class="empty">這位公關近 14 天沒有報班。</p>'}`;
 
  document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
  document.querySelectorAll('.t14-status').forEach(sel=>sel.onchange=async()=>{
    sel.disabled=true;
    const {error}=await sb.from('bookings').update({status:sel.value}).eq('id',sel.dataset.id);
-   if(error)alert('靽格㺿憭望�');
+   if(error)alert('修改失敗');
    await refreshAdmin();
    renderTalent14Days(talentId);
  });
  document.querySelectorAll('.t14-delete').forEach(btn=>btn.onclick=async()=>{
-   if(!confirm(`蝣箏�瘞訾��芷膄 ${t.nickname} ${btn.dataset.date} �嗵��梁号�𠬍�`))return;
+   if(!confirm(`確定永久刪除 ${t.nickname} ${btn.dataset.date} 這筆報班嗎？`))return;
    btn.disabled=true;
    const {error}=await sb.from('bookings').delete().eq('id',btn.dataset.id);
-   if(error){alert('�芷膄憭望�嚗锭upabase �桀��航�撠𡁏𧊋��迂蝞∠��∪⏛�斤号銵具��');btn.disabled=false;return}
+   if(error){alert('刪除失敗：Supabase 目前可能尚未允許管理員刪除班表。');btn.disabled=false;return}
    await refreshAdmin();
    renderTalent14Days(talentId);
  });
@@ -2029,7 +2029,7 @@ async function renderTalentPayrollHistory(talentId){
   const t=S.talents.find(x=>x.id===talentId);
   if(!t)return;
   const panel=el('panel');
-  panel.innerHTML='<div class="member-loading-card">�芾�蝝�����碶葉��</div>';
+  panel.innerHTML='<div class="member-loading-card">薪資紀錄讀取中…</div>';
 
   const {data,error}=await sb.from('payrolls')
     .select('*')
@@ -2039,7 +2039,7 @@ async function renderTalentPayrollHistory(talentId){
 
   if(error){
     console.error(error);
-    panel.innerHTML=`<div class="admin-section-title"><div><button class="back-talents">�� 餈𥪜��祇�蝞∠�</button><h2>${esc(t.nickname)}嚚𡏭𢞁鞈����</h2></div></div><div class="member-setup-card"><strong>霈��硋仃��</strong><p>�桀��⊥�霈��㚚�嗘��祇���𢞁鞈������</p></div>`;
+    panel.innerHTML=`<div class="admin-section-title"><div><button class="back-talents">← 返回公關管理</button><h2>${esc(t.nickname)}｜薪資紀錄</h2></div></div><div class="member-setup-card"><strong>讀取失敗</strong><p>目前無法讀取這位公關的薪資紀錄。</p></div>`;
     document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
     return;
   }
@@ -2054,23 +2054,23 @@ async function renderTalentPayrollHistory(talentId){
 
   panel.innerHTML=`<div class="admin-section-title payroll-history-admin-title">
     <div>
-      <button class="back-talents">�� 餈𥪜��祇�蝞∠�</button>
+      <button class="back-talents">← 返回公關管理</button>
       <p class="eyebrow">PAYROLL HISTORY</p>
-      <h2>${esc(t.nickname)}嚚𡏭𢞁鞈����</h2>
-      <p class="panel-note">�望鰵�啗��鍦���𢞁鞈��蝝啁��贝��祇��砌犖�见����峕���𢞁鞈�鱓�滢��湛��嫣噶雿𣳇�鞾�望瓲撠溻��</p>
+      <h2>${esc(t.nickname)}｜薪資紀錄</h2>
+      <p class="panel-note">由新到舊排列。薪資明細版型與公關本人看到的「我的薪資單」一致，方便你逐週核對。</p>
     </div>
   </div>
   <div class="admin-payroll-history-summary">
-    <div><span>�券�蝝���</span><strong>${rows.length}</strong><small>隞�</small></div>
-    <div><span>�祇��见���</span><strong>${published}</strong><small>撌脩䔄撣�</small></div>
-    <div><span>撠𡁏𧊋�祇�</span><strong>${drafts}</strong><small>�厩阮</small></div>
+    <div><span>全部紀錄</span><strong>${rows.length}</strong><small>份</small></div>
+    <div><span>公關看得到</span><strong>${published}</strong><small>已發布</small></div>
+    <div><span>尚未公開</span><strong>${drafts}</strong><small>草稿</small></div>
   </div>
   <section class="payroll-page admin-payroll-history-page">
     <div class="payroll-compact-list">
       ${rows.length?rows.map(x=>`<div class="admin-payroll-slip-wrap ${x.is_published?'is-published':'is-draft'}">
-        <div class="admin-payroll-visibility"><span>${x.is_published?'�� 撌脩䔄撣���祇��见���':'�� �厩阮嚚𨅯��𦦵𤌍�滨�銝滚�'}</span><small>${esc(x.week_start)} 嚚� ${esc(addDaysIso(x.week_start,6))}</small></div>
+        <div class="admin-payroll-visibility"><span>${x.is_published?'✓ 已發布｜公關看得到':'● 草稿｜公關目前看不到'}</span><small>${esc(x.week_start)} ～ ${esc(addDaysIso(x.week_start,6))}</small></div>
         ${renderPayrollSlip(x,false)}
-      </div>`).join(''):'<div class="member-empty-lux"><strong>�桀�瘝埝��芾�蝝���</strong><p>撱箇�蝚砌�撘菔𢞁鞈�鱓敺䕘�����望活�望鰵�啗�憿舐內�券�躰ㄐ��</p></div>'}
+      </div>`).join(''):'<div class="member-empty-lux"><strong>目前沒有薪資紀錄</strong><p>建立第一張薪資單後，會依週次由新到舊顯示在這裡。</p></div>'}
     </div>
   </section>`;
 
@@ -2082,7 +2082,7 @@ async function renderTalentPayrollHistory(talentId){
     if(!d)return;
     d.hidden=!d.hidden;
     slip.classList.toggle('is-open',!d.hidden);
-    if(tgl)tgl.textContent=d.hidden?'�亦��𡒊敦 嚗�':'�嗉絲�𡒊敦 嚗�';
+    if(tgl)tgl.textContent=d.hidden?'查看明細 ＋':'收起明細 －';
   });
   panel.querySelectorAll('.payroll-slip-top').forEach(b=>b.addEventListener('keydown',e=>{
     if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click()}
@@ -2093,7 +2093,7 @@ async function renderTalentSectionTrend(talentId){
   const t=S.talents.find(x=>x.id===talentId);
   if(!t)return;
   const panel=el('panel');
-  panel.innerHTML='<div class="member-loading-card">蝭��貉隅�Ｚ��碶葉��</div>';
+  panel.innerHTML='<div class="member-loading-card">節數趨勢讀取中…</div>';
 
   const {data,error}=await sb.from('payrolls')
     .select('*')
@@ -2101,7 +2101,7 @@ async function renderTalentSectionTrend(talentId){
     .order('week_start',{ascending:true});
 
   if(error){
-    panel.innerHTML=`<div class="admin-section-title"><div><button class="back-talents">�� 餈𥪜��祇�蝞∠�</button><h2>${esc(t.nickname)}嚚𨀣��梁��貉隅��</h2></div></div><div class="member-setup-card"><strong>霈��硋仃��</strong><p>�桀��⊥�霈��𤥁𢞁鞈������</p></div>`;
+    panel.innerHTML=`<div class="admin-section-title"><div><button class="back-talents">← 返回公關管理</button><h2>${esc(t.nickname)}｜每週節數趨勢</h2></div></div><div class="member-setup-card"><strong>讀取失敗</strong><p>目前無法讀取薪資紀錄。</p></div>`;
     document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
     return;
   }
@@ -2117,24 +2117,24 @@ async function renderTalentSectionTrend(talentId){
 
   panel.innerHTML=`<div class="admin-section-title trend-page-title">
     <div>
-      <button class="back-talents">�� 餈𥪜��祇�蝞∠�</button>
+      <button class="back-talents">← 返回公關管理</button>
       <p class="eyebrow">WEEKLY SECTION TREND</p>
-      <h2>${esc(t.nickname)}嚚𨀣��梁��貉隅��</h2>
-      <p class="panel-note">鞈���湔𦻖靘�䌊瘥誯�梯𢞁鞈�鱓嚗䔶���閬�𡖂憭𤥁撓�亦��詻��</p>
+      <h2>${esc(t.nickname)}｜每週節數趨勢</h2>
+      <p class="panel-note">資料直接來自每週薪資單，不需要另外輸入節數。</p>
     </div>
   </div>
 
   <div class="section-trend-stats">
-    <div><span>��餈睲���</span><strong>${last}</strong><small>蝭�</small></div>
-    <div><span>餈� 4 �勗像��</span><strong>${avg4}</strong><small>蝭� / ��</small></div>
-    <div><span>餈� 12 �望�擃�</span><strong>${maxVal}</strong><small>蝭�</small></div>
-    <div><span>蝝航�蝝���</span><strong>${rows.length}</strong><small>��</small></div>
+    <div><span>最近一週</span><strong>${last}</strong><small>節</small></div>
+    <div><span>近 4 週平均</span><strong>${avg4}</strong><small>節 / 週</small></div>
+    <div><span>近 12 週最高</span><strong>${maxVal}</strong><small>節</small></div>
+    <div><span>累計紀錄</span><strong>${rows.length}</strong><small>週</small></div>
   </div>
 
   <section class="section-trend-card">
     <div class="section-trend-head">
-      <div><small>LAST 12 WEEKS</small><h3>瘥誯�梁蜇蝭���</h3></div>
-      <span>${recent.length?`${esc(recent[0].week_start)} 嚚� ${esc(recent.at(-1).week_start)}`:'撠𡁶�鞈��'}</span>
+      <div><small>LAST 12 WEEKS</small><h3>每週總節數</h3></div>
+      <span>${recent.length?`${esc(recent[0].week_start)} ～ ${esc(recent.at(-1).week_start)}`:'尚無資料'}</span>
     </div>
 
     ${recent.length?`
@@ -2151,68 +2151,68 @@ async function renderTalentSectionTrend(talentId){
         }).join('')}
       </div>
       <div class="section-trend-history">
-        ${recent.slice().reverse().map(x=>`<div><span>${esc(x.week_start)} 嚚� ${esc(addDaysIso(x.week_start,6))}</span><b>${x._calc.total} 蝭�</b><small>${esc(x.venue||'�芸‵摨堒�')}</small></div>`).join('')}
+        ${recent.slice().reverse().map(x=>`<div><span>${esc(x.week_start)} ～ ${esc(addDaysIso(x.week_start,6))}</span><b>${x._calc.total} 節</b><small>${esc(x.venue||'未填店名')}</small></div>`).join('')}
       </div>
-    `:`<div class="member-empty-lux"><strong>�桀�瘝埝��芾��桃��貉���</strong><p>撱箇�蝚砌�撘菜��梯𢞁鞈�鱓敺䕘��躰ㄐ��䌊�閖�憪讠敞蝛滩隅�Ｕ��</p></div>`}
+    `:`<div class="member-empty-lux"><strong>目前沒有薪資單節數資料</strong><p>建立第一張每週薪資單後，這裡會自動開始累積趨勢。</p></div>`}
   </section>`;
 
   document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
 }
 
 async function adminPayroll(focusTalentId=''){
-  const panel=el('panel');panel.innerHTML='<div class="member-loading-card">�芾�鞈��霈��碶葉��</div>';
+  const panel=el('panel');panel.innerHTML='<div class="member-loading-card">薪資資料讀取中…</div>';
   const selectedWeek=window.__payrollWeek||mondayOf(isoDay());
   const {data,error}=await sb.from('payrolls').select('*').eq('week_start',selectedWeek).order('nickname');
-  if(error){panel.innerHTML=adminV108Setup('�芾�蝞∠�');return}
+  if(error){panel.innerHTML=adminV108Setup('薪資管理');return}
   const rows=data||[],talents=S.talents.filter(t=>t.status!=='left');
   const byTalent=new Map(rows.map(x=>[x.talent_id,x]));
   const counts={published:rows.filter(x=>x.is_published).length,draft:rows.filter(x=>!x.is_published).length,missing:Math.max(0,talents.length-rows.length)};
-  panel.innerHTML=`<div class="admin-section-title grouped-title"><div><p class="eyebrow">WEEKLY PAYROLL</p><h2>�芾�蝞∠�</h2><p class="panel-note">隞亙��𦦵�銝餅㟲���瘥誯�梁��滚鱓�𣂷�憛怠神嚗䔶��典�敺硺���𢞁鞈�鱓鋆⊥𪄳鈭箝��</p></div></div>
-  <section class="manager-toolbar"><div class="week-switch"><button id="payPrev" class="week-arrow">��</button><div><small>�祇�梁�蝞�</small><strong>${esc(selectedWeek)} 嚚� ${esc(addDaysIso(selectedWeek,6))}</strong></div><button id="payNext" class="week-arrow">��</button></div><div class="manager-search"><span>��</span><input id="payTalentSearch" placeholder="�𨅯��祇��梁迂"></div></section>
-  <section class="payroll-progress"><div><small>�祇�勗��𣂼漲</small><strong>${counts.published} <i>/ ${talents.length}</i></strong></div><div class="progress-stat done"><b>${counts.published}</b><span>撌脩䔄撣�</span></div><div class="progress-stat draft"><b>${counts.draft}</b><span>�厩阮</span></div><div class="progress-stat missing"><b>${counts.missing}</b><span>撠𡁏𧊋憛怠神</span></div></section>
+  panel.innerHTML=`<div class="admin-section-title grouped-title"><div><p class="eyebrow">WEEKLY PAYROLL</p><h2>薪資管理</h2><p class="panel-note">以公關為主整理，每週照名單逐一填寫，不用再從一堆薪資單裡找人。</p></div></div>
+  <section class="manager-toolbar"><div class="week-switch"><button id="payPrev" class="week-arrow">‹</button><div><small>本週結算</small><strong>${esc(selectedWeek)} ～ ${esc(addDaysIso(selectedWeek,6))}</strong></div><button id="payNext" class="week-arrow">›</button></div><div class="manager-search"><span>⌕</span><input id="payTalentSearch" placeholder="搜尋公關暱稱"></div></section>
+  <section class="payroll-progress"><div><small>本週完成度</small><strong>${counts.published} <i>/ ${talents.length}</i></strong></div><div class="progress-stat done"><b>${counts.published}</b><span>已發布</span></div><div class="progress-stat draft"><b>${counts.draft}</b><span>草稿</span></div><div class="progress-stat missing"><b>${counts.missing}</b><span>尚未填寫</span></div></section>
   <div class="talent-manager-grid" id="payrollTalentGrid">${renderPayrollTalentCards(talents,byTalent)}</div><div id="payrollModalHost"></div>`;
   const rerender=()=>{const q=el('payTalentSearch').value.trim().toLowerCase();el('payrollTalentGrid').innerHTML=renderPayrollTalentCards(talents.filter(t=>t.nickname.toLowerCase().includes(q)),byTalent);bindPayrollTalentCards(byTalent,talents)};
   el('payTalentSearch').oninput=rerender;bindPayrollTalentCards(byTalent,talents);
   el('payPrev').onclick=()=>{window.__payrollWeek=addDaysIso(selectedWeek,-7);adminPayroll()};el('payNext').onclick=()=>{window.__payrollWeek=addDaysIso(selectedWeek,7);adminPayroll()};
   if(focusTalentId){setTimeout(()=>document.querySelector(`[data-pay-talent="${focusTalentId}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),50)}
 }
-function renderPayrollTalentCards(talents,byTalent){return talents.map(t=>{const x=byTalent.get(t.id),c=x?payrollCalc(x):null,status=!x?'撠𡁏𧊋憛怠神':x.is_published?'撌脩䔄撣�':'�厩阮';return `<article class="talent-manager-card payroll-person ${x?'has-record':'is-empty'}" data-pay-talent="${t.id}"><div class="manager-avatar">${(t.avatar_portrait_url||t.avatar_url)?`<img src="${esc(t.avatar_portrait_url||t.avatar_url)}" alt="${esc(t.nickname)} 憭折�鞎�">`:`<span>${esc((t.nickname||'?').slice(0,1))}</span>`}</div><div class="manager-person-info"><small>PUBLIC RELATIONS</small><h3>${esc(t.nickname)}</h3><span class="manager-status ${!x?'missing':x.is_published?'published':'draft'}">�� ${status}</span>${x?`<p>${c.total} 蝭���繚��蝭��� ${money(c.rate)}��繚��撖阡� <b>${money(c.net)}</b></p>`:'<p>�䠷�梢�瘝埝�撱箇��芾���</p>'}</div><button class="manager-action ${x?'':'primary'}" data-pay-edit="${t.id}">${x?'蝺刻摩�芾�':'嚗� 憛怠神�芾�'}</button></article>`}).join('')||'<div class="member-empty-lux"><strong>�曆��啣���</strong><p>隢𧢲�銝��钅��萄��𨅯���</p></div>'}
+function renderPayrollTalentCards(talents,byTalent){return talents.map(t=>{const x=byTalent.get(t.id),c=x?payrollCalc(x):null,status=!x?'尚未填寫':x.is_published?'已發布':'草稿';return `<article class="talent-manager-card payroll-person ${x?'has-record':'is-empty'}" data-pay-talent="${t.id}"><div class="manager-avatar">${(t.avatar_portrait_url||t.avatar_url)?`<img src="${esc(t.avatar_portrait_url||t.avatar_url)}" alt="${esc(t.nickname)} 大頭貼">`:`<span>${esc((t.nickname||'?').slice(0,1))}</span>`}</div><div class="manager-person-info"><small>PUBLIC RELATIONS</small><h3>${esc(t.nickname)}</h3><span class="manager-status ${!x?'missing':x.is_published?'published':'draft'}">● ${status}</span>${x?`<p>${c.total} 節　·　節薪 ${money(c.rate)}　·　實領 <b>${money(c.net)}</b></p>`:'<p>這週還沒有建立薪資單</p>'}</div><button class="manager-action ${x?'':'primary'}" data-pay-edit="${t.id}">${x?'編輯薪資':'＋ 填寫薪資'}</button></article>`}).join('')||'<div class="member-empty-lux"><strong>找不到公關</strong><p>請換一個關鍵字搜尋。</p></div>'}
 function bindPayrollTalentCards(byTalent,talents){document.querySelectorAll('[data-pay-edit]').forEach(b=>b.onclick=()=>{const id=b.dataset.payEdit;openPayrollEditor(byTalent.get(id)||null,id,talents)})}
 function openPayrollEditor(row,focusTalentId,talents){
   const host=el('payrollModalHost')||document.body,start=row?.week_start||mondayOf(isoDay());
   const modal=document.createElement('div');modal.className='leave-modal-backdrop';
-  modal.innerHTML=`<div class="leave-modal payroll-editor-modal"><div class="leave-modal-head"><div><p class="eyebrow">PAYROLL EDITOR</p><h3>${row?'蝺刻摩':'撱箇�'}瘥誯�梯𢞁鞈�鱓</h3></div><button class="leave-close" type="button">�</button></div><form id="payrollEditor"><div class="payroll-editor-grid"><label>�祇�<select name="talent_id" required><option value="">隢钅���</option>${talents.map(t=>`<option value="${t.id}" ${(row?.talent_id||focusTalentId)===t.id?'selected':''}>${esc(t.nickname)}</option>`).join('')}</select></label><label>�望活嚗���煺�嚗�<input type="date" name="week_start" value="${esc(start)}" required></label><label>摨堒振<select name="venue" required><option value="">隢钅����摰�</option>${S.venues.filter(v=>v.is_active||v.name===row?.venue).map(v=>`<option value="${esc(v.name)}" ${row?.venue===v.name?'selected':''}>${esc(v.name)}${!v.is_active?'嚗�歇�𦦵鍂嚗�':''}</option>`).join('')}${row?.venue&&!S.venues.some(v=>v.name===row.venue)?`<option value="${esc(row.venue)}" selected>${esc(row.venue)}嚗�風�脣��㵪�</option>`:''}</select></label><label>�祇�梁���<input type="number" name="section_rate" min="0" step="1" value="${row?.section_rate??''}" required placeholder="靘见� 210"></label></div><h4>瘥誩予�见³�蝭���</h4><div class="payroll-seven-days">${payrollDays.map(([k,l],i)=>`<label>��${l}<small>${twDate(addDaysIso(start,i))}</small><input type="number" name="${k}" min="0" step="1" value="${row?.[k]??0}"></label>`).join('')}</div><h4>��狡</h4><div class="payroll-editor-grid deductions">${[['tax_amount','蝔��'],['cleaning_fee','皜��鞎�'],['laundry_fee','瘣𡑒﹝鞎�'],['misc_fee','�𨀣𣈲'],['makeup_fee','憒嗪垣'],['advance_amount','�鞉𣈲']].map(([k,l])=>`<label>${l}<input type="number" name="${k}" min="0" step="1" value="${row?.[k]??0}"></label>`).join('')}</div><label>�躰酉<textarea name="note" placeholder="�詨‵">${esc(row?.note||'')}</textarea></label><div class="payroll-live-total" id="payrollLiveTotal"></div><label class="check"><input type="checkbox" name="is_published" ${row?.is_published?'checked':''}> �澆�蝯血��𨀣䰻�页��芸㗲�詨��脣��箄�蝔選�</label><div class="leave-modal-actions"><button class="btn btn-primary" type="submit">�脣��芾���</button>${row?'<button class="btn btn-outline danger delete-payroll" type="button">�芷膄�祆活�芾�</button>':''}<button class="btn btn-outline payroll-cancel" type="button">�𡝗�</button></div><p id="payrollEditorStatus" class="form-status"></p></form></div>`;
+  modal.innerHTML=`<div class="leave-modal payroll-editor-modal"><div class="leave-modal-head"><div><p class="eyebrow">PAYROLL EDITOR</p><h3>${row?'編輯':'建立'}每週薪資單</h3></div><button class="leave-close" type="button">×</button></div><form id="payrollEditor"><div class="payroll-editor-grid"><label>公關<select name="talent_id" required><option value="">請選擇</option>${talents.map(t=>`<option value="${t.id}" ${(row?.talent_id||focusTalentId)===t.id?'selected':''}>${esc(t.nickname)}</option>`).join('')}</select></label><label>週次（星期一）<input type="date" name="week_start" value="${esc(start)}" required></label><label>店家<select name="venue" required><option value="">請選擇店家</option>${S.venues.filter(v=>v.is_active||v.name===row?.venue).map(v=>`<option value="${esc(v.name)}" ${row?.venue===v.name?'selected':''}>${esc(v.name)}${!v.is_active?'（已停用）':''}</option>`).join('')}${row?.venue&&!S.venues.some(v=>v.name===row.venue)?`<option value="${esc(row.venue)}" selected>${esc(row.venue)}（歷史店名）</option>`:''}</select></label><label>本週節薪<input type="number" name="section_rate" min="0" step="1" value="${row?.section_rate??''}" required placeholder="例如 210"></label></div><h4>每天個別節數</h4><div class="payroll-seven-days">${payrollDays.map(([k,l],i)=>`<label>週${l}<small>${twDate(addDaysIso(start,i))}</small><input type="number" name="${k}" min="0" step="1" value="${row?.[k]??0}"></label>`).join('')}</div><h4>扣款</h4><div class="payroll-editor-grid deductions">${[['tax_amount','稅金'],['cleaning_fee','清潔費'],['laundry_fee','洗衣費'],['misc_fee','雜支'],['makeup_fee','妝髮'],['advance_amount','預支']].map(([k,l])=>`<label>${l}<input type="number" name="${k}" min="0" step="1" value="${row?.[k]??0}"></label>`).join('')}</div><label>備註<textarea name="note" placeholder="選填">${esc(row?.note||'')}</textarea></label><div class="payroll-live-total" id="payrollLiveTotal"></div><label class="check"><input type="checkbox" name="is_published" ${row?.is_published?'checked':''}> 發布給公關查看（未勾選則儲存為草稿）</label><div class="leave-modal-actions"><button class="btn btn-primary" type="submit">儲存薪資單</button>${row?'<button class="btn btn-outline danger delete-payroll" type="button">刪除本次薪資</button>':''}<button class="btn btn-outline payroll-cancel" type="button">取消</button></div><p id="payrollEditorStatus" class="form-status"></p></form></div>`;
   host.appendChild(modal);const form=modal.querySelector('#payrollEditor'),close=()=>modal.remove();modal.querySelector('.leave-close').onclick=close;modal.querySelector('.payroll-cancel').onclick=close;
   modal.querySelector('.delete-payroll')?.addEventListener('click',async()=>{
     if(!row)return;
-    if(!confirm(`蝣箏��芷膄 ${row.nickname||'�嗘��祇�'} ${row.week_start||''} �嗘��梁��芾��桀�嚗髿n\n�芷膄敺���𦦵垢銋煺�����见��嗵��芾���`))return;
+    if(!confirm(`確定刪除 ${row.nickname||'這位公關'} ${row.week_start||''} 這一週的薪資單嗎？\n\n刪除後公關端也不會再看到這筆薪資。`))return;
     const btn=modal.querySelector('.delete-payroll');
-    btn.disabled=true;btn.textContent='�芷膄銝凌��';
+    btn.disabled=true;btn.textContent='刪除中…';
     const {error}=await sb.from('payrolls').delete().eq('id',row.id);
-    if(error){console.error(error);alert('�芷膄�芾��桀仃�梹�隢讠�敺��閰艾��');btn.disabled=false;btn.textContent='�芷膄�祆活�芾�';return}
+    if(error){console.error(error);alert('刪除薪資單失敗，請稍後再試。');btn.disabled=false;btn.textContent='刪除本次薪資';return}
     close();
     await adminPayroll();
   });
-  const preview=()=>{const x=Object.fromEntries(new FormData(form));const c=payrollCalc(x);el('payrollLiveTotal').innerHTML=`<div><span>蝮賜���</span><b>${c.total} 蝭�</b></div><div><span>蝭��貉𢞁鞈�</span><b>${money(c.gross)}</b></div><div><span>��狡</span><b>�� ${money(c.deductions)}</b></div><div class="net"><span>撖阡�</span><strong>${money(c.net)}</strong></div>`};form.oninput=preview;preview();
-  form.onsubmit=async e=>{e.preventDefault();const x=Object.fromEntries(new FormData(form)),t=S.talents.find(v=>v.id===x.talent_id);if(!t)return;text('payrollEditorStatus','�脣�銝凌��');const c=payrollCalc(x),payload={talent_id:t.id,user_id:t.user_id||null,nickname:t.nickname,week_start:mondayOf(x.week_start),venue:x.venue,section_rate:Number(x.section_rate),mon_sections:Number(x.mon_sections||0),tue_sections:Number(x.tue_sections||0),wed_sections:Number(x.wed_sections||0),thu_sections:Number(x.thu_sections||0),fri_sections:Number(x.fri_sections||0),sat_sections:Number(x.sat_sections||0),sun_sections:Number(x.sun_sections||0),tax_amount:Number(x.tax_amount||0),cleaning_fee:Number(x.cleaning_fee||0),laundry_fee:Number(x.laundry_fee||0),misc_fee:Number(x.misc_fee||0),makeup_fee:Number(x.makeup_fee||0),advance_amount:Number(x.advance_amount||0),gross_amount:c.gross,deduction_total:c.deductions,net_amount:c.net,note:x.note||null,is_published:!!form.elements.is_published.checked,updated_at:new Date().toISOString()};let q=row?sb.from('payrolls').update(payload).eq('id',row.id):sb.from('payrolls').insert(payload);const {error}=await q;if(error){console.error(error);text('payrollEditorStatus','�� �脣�憭望�嚗�'+error.message);return}close();await adminPayroll(t.id)};
+  const preview=()=>{const x=Object.fromEntries(new FormData(form));const c=payrollCalc(x);el('payrollLiveTotal').innerHTML=`<div><span>總節數</span><b>${c.total} 節</b></div><div><span>節數薪資</span><b>${money(c.gross)}</b></div><div><span>扣款</span><b>− ${money(c.deductions)}</b></div><div class="net"><span>實領</span><strong>${money(c.net)}</strong></div>`};form.oninput=preview;preview();
+  form.onsubmit=async e=>{e.preventDefault();const x=Object.fromEntries(new FormData(form)),t=S.talents.find(v=>v.id===x.talent_id);if(!t)return;text('payrollEditorStatus','儲存中…');const c=payrollCalc(x),payload={talent_id:t.id,user_id:t.user_id||null,nickname:t.nickname,week_start:mondayOf(x.week_start),venue:x.venue,section_rate:Number(x.section_rate),mon_sections:Number(x.mon_sections||0),tue_sections:Number(x.tue_sections||0),wed_sections:Number(x.wed_sections||0),thu_sections:Number(x.thu_sections||0),fri_sections:Number(x.fri_sections||0),sat_sections:Number(x.sat_sections||0),sun_sections:Number(x.sun_sections||0),tax_amount:Number(x.tax_amount||0),cleaning_fee:Number(x.cleaning_fee||0),laundry_fee:Number(x.laundry_fee||0),misc_fee:Number(x.misc_fee||0),makeup_fee:Number(x.makeup_fee||0),advance_amount:Number(x.advance_amount||0),gross_amount:c.gross,deduction_total:c.deductions,net_amount:c.net,note:x.note||null,is_published:!!form.elements.is_published.checked,updated_at:new Date().toISOString()};let q=row?sb.from('payrolls').update(payload).eq('id',row.id):sb.from('payrolls').insert(payload);const {error}=await q;if(error){console.error(error);text('payrollEditorStatus','❌ 儲存失敗：'+error.message);return}close();await adminPayroll(t.id)};
 }
 async function adminHotelCards(focusTalentId=''){
-  const panel=el('panel');panel.innerHTML='<div class="member-loading-card">�鍦�蝝�����碶葉��</div>';
+  const panel=el('panel');panel.innerHTML='<div class="member-loading-card">酒店紀錄讀取中…</div>';
   const {data,error}=await sb.from('hotel_card_records').select('*').order('created_at',{ascending:false});
-  if(error){panel.innerHTML=adminV108Setup('�鍦�銝𠹺��∠���');return}
+  if(error){panel.innerHTML=adminV108Setup('酒店上下卡紀錄');return}
   const rows=data||[],talents=S.talents.filter(t=>t.status!=='left'),grouped=new Map();
   talents.forEach(t=>grouped.set(t.id,[]));rows.forEach(x=>{if(!grouped.has(x.talent_id))grouped.set(x.talent_id,[]);grouped.get(x.talent_id).push(x)});
-  panel.innerHTML=`<div class="admin-section-title grouped-title"><div><p class="eyebrow">HOTEL CARD RECORDS</p><h2>�鍦�銝𠹺��∠���</h2><p class="panel-note">銝�雿滚��靝�撘萄㨃����曆犖嚗��蝞∠�憟寞㦛蝬㮖��⊿����摨𨰜��</p></div></div><section class="manager-toolbar"><div class="manager-summary"><small>�祇�蝮賣彍</small><strong>${talents.length}</strong><span>�桀��� ${rows.length} 蝑��摨㛖���</span></div><div class="manager-search"><span>��</span><input id="hotelTalentSearch" placeholder="�𨅯��祇��梁迂"></div></section><div class="talent-manager-grid" id="hotelTalentGrid">${renderHotelTalentCards(talents,grouped)}</div><div id="hotelModalHost"></div><div id="hotelDrawerHost"></div>`;
+  panel.innerHTML=`<div class="admin-section-title grouped-title"><div><p class="eyebrow">HOTEL CARD RECORDS</p><h2>酒店上下卡紀錄</h2><p class="panel-note">一位公關一張卡。先找人，再管理她曾經上卡過的酒店。</p></div></div><section class="manager-toolbar"><div class="manager-summary"><small>公關總數</small><strong>${talents.length}</strong><span>目前共 ${rows.length} 筆酒店紀錄</span></div><div class="manager-search"><span>⌕</span><input id="hotelTalentSearch" placeholder="搜尋公關暱稱"></div></section><div class="talent-manager-grid" id="hotelTalentGrid">${renderHotelTalentCards(talents,grouped)}</div><div id="hotelModalHost"></div><div id="hotelDrawerHost"></div>`;
   const bind=()=>{document.querySelectorAll('[data-hotel-talent]').forEach(b=>b.onclick=()=>openHotelTalentDrawer(b.dataset.hotelTalent,grouped.get(b.dataset.hotelTalent)||[]))};bind();
   el('hotelTalentSearch').oninput=e=>{const q=e.target.value.trim().toLowerCase();el('hotelTalentGrid').innerHTML=renderHotelTalentCards(talents.filter(t=>t.nickname.toLowerCase().includes(q)),grouped);bind()};
   if(focusTalentId)setTimeout(()=>document.querySelector(`[data-hotel-talent="${focusTalentId}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),50);
 }
-function renderHotelTalentCards(talents,grouped){return talents.map(t=>{const list=grouped.get(t.id)||[],chips=list.slice(0,4).map(x=>`<span>${esc(x.venue)}<i>${esc(x.status||'�曆���')}</i></span>`).join('');return `<article class="talent-manager-card hotel-person"><div class="manager-avatar">${(t.avatar_portrait_url||t.avatar_url)?`<img src="${esc(t.avatar_portrait_url||t.avatar_url)}" alt="${esc(t.nickname)} 憭折�鞎�">`:`<span>${esc((t.nickname||'?').slice(0,1))}</span>`}</div><div class="manager-person-info"><small>HOTEL HISTORY</small><h3>${esc(t.nickname)}</h3><p>${list.length?`�� ${list.length} �橒�蝑��摨㛖���`:'撠𡁏𧊋撱箇��鍦�蝝���'}</p><div class="hotel-mini-chips">${chips}${list.length>4?`<span class="more">嚗�${list.length-4}</span>`:''}</div></div><button class="manager-action ${list.length?'':'primary'}" data-hotel-talent="${t.id}">${list.length?'蝞∠�蝝���':'嚗� �啣�蝝���'}</button></article>`}).join('')||'<div class="member-empty-lux"><strong>�曆��啣���</strong><p>隢𧢲�銝��钅��萄��𨅯���</p></div>'}
-function openHotelTalentDrawer(talentId,list){const t=S.talents.find(x=>x.id===talentId);if(!t)return;const host=el('hotelDrawerHost'),box=document.createElement('div');box.className='manager-drawer-backdrop';box.innerHTML=`<aside class="manager-drawer"><div class="drawer-head"><div><p class="eyebrow">HOTEL HISTORY</p><h3>${esc(t.nickname)}嚚𣈯�摨𦯀�銝见㨃蝝���</h3><span>${list.length} 蝑����</span></div><button class="drawer-close">�</button></div><button class="btn btn-primary drawer-add-hotel">嚗� �啣��鍦�蝝���</button><div class="drawer-record-list">${list.map(x=>`<article><div><small>${esc(x.status||'�曆���')}</small><h4>${esc(x.venue)}</h4><p>銝𠰴㨃嚗�${esc(x.card_on_date||'�芰���')}��嚚栶��銝见㨃嚗�${esc(x.card_off_date||'�芰���')}</p>${x.note?`<span>${esc(x.note)}</span>`:''}</div><button class="mini-btn drawer-edit-hotel" data-id="${x.id}">蝺刻摩</button></article>`).join('')||'<div class="member-empty-lux"><strong>����厰�摨㛖���</strong><p>�交�銝滨䰻�㮖�瘝㘾�靽���芸‵摨堒�撠梯���遣蝡卝��</p></div>'}</div></aside>`;host.appendChild(box);const close=()=>box.remove();box.querySelector('.drawer-close').onclick=close;box.querySelector('.drawer-add-hotel').onclick=()=>{close();openHotelCardEditor(null,talentId)};box.querySelectorAll('.drawer-edit-hotel').forEach(b=>b.onclick=()=>{const row=list.find(x=>x.id===b.dataset.id);close();openHotelCardEditor(row,talentId)})}
+function renderHotelTalentCards(talents,grouped){return talents.map(t=>{const list=grouped.get(t.id)||[],chips=list.slice(0,4).map(x=>`<span>${esc(x.venue)}<i>${esc(x.status||'曾上卡')}</i></span>`).join('');return `<article class="talent-manager-card hotel-person"><div class="manager-avatar">${(t.avatar_portrait_url||t.avatar_url)?`<img src="${esc(t.avatar_portrait_url||t.avatar_url)}" alt="${esc(t.nickname)} 大頭貼">`:`<span>${esc((t.nickname||'?').slice(0,1))}</span>`}</div><div class="manager-person-info"><small>HOTEL HISTORY</small><h3>${esc(t.nickname)}</h3><p>${list.length?`共 ${list.length} 間／筆酒店紀錄`:'尚未建立酒店紀錄'}</p><div class="hotel-mini-chips">${chips}${list.length>4?`<span class="more">＋${list.length-4}</span>`:''}</div></div><button class="manager-action ${list.length?'':'primary'}" data-hotel-talent="${t.id}">${list.length?'管理紀錄':'＋ 新增紀錄'}</button></article>`}).join('')||'<div class="member-empty-lux"><strong>找不到公關</strong><p>請換一個關鍵字搜尋。</p></div>'}
+function openHotelTalentDrawer(talentId,list){const t=S.talents.find(x=>x.id===talentId);if(!t)return;const host=el('hotelDrawerHost'),box=document.createElement('div');box.className='manager-drawer-backdrop';box.innerHTML=`<aside class="manager-drawer"><div class="drawer-head"><div><p class="eyebrow">HOTEL HISTORY</p><h3>${esc(t.nickname)}｜酒店上下卡紀錄</h3><span>${list.length} 筆紀錄</span></div><button class="drawer-close">×</button></div><button class="btn btn-primary drawer-add-hotel">＋ 新增酒店紀錄</button><div class="drawer-record-list">${list.map(x=>`<article><div><small>${esc(x.status||'曾上卡')}</small><h4>${esc(x.venue)}</h4><p>上卡：${esc(x.card_on_date||'未紀錄')}　｜　下卡：${esc(x.card_off_date||'未紀錄')}</p>${x.note?`<span>${esc(x.note)}</span>`:''}</div><button class="mini-btn drawer-edit-hotel" data-id="${x.id}">編輯</button></article>`).join('')||'<div class="member-empty-lux"><strong>還沒有酒店紀錄</strong><p>日期不知道也沒關係，只填店名就能先建立。</p></div>'}</div></aside>`;host.appendChild(box);const close=()=>box.remove();box.querySelector('.drawer-close').onclick=close;box.querySelector('.drawer-add-hotel').onclick=()=>{close();openHotelCardEditor(null,talentId)};box.querySelectorAll('.drawer-edit-hotel').forEach(b=>b.onclick=()=>{const row=list.find(x=>x.id===b.dataset.id);close();openHotelCardEditor(row,talentId)})}
 function openHotelCardEditor(row,focusTalentId=''){
-  const host=el('hotelModalHost')||document.body,modal=document.createElement('div');modal.className='leave-modal-backdrop';modal.innerHTML=`<div class="leave-modal"><div class="leave-modal-head"><div><p class="eyebrow">HOTEL RECORD</p><h3>${row?'蝺刻摩':'�啣�'}銝𠹺��∠���</h3></div><button class="leave-close" type="button">�</button></div><form id="hotelCardEditor" class="hotel-card-editor"><label>�祇�<select name="talent_id" required><option value="">隢钅���</option>${S.talents.map(t=>`<option value="${t.id}" ${(row?.talent_id||focusTalentId)===t.id?'selected':''}>${esc(t.nickname)}</option>`).join('')}</select></label><label>摨堒振<select name="venue" required><option value="">隢钅����摰�</option>${S.venues.filter(v=>v.is_active||v.name===row?.venue).map(v=>`<option value="${esc(v.name)}" ${row?.venue===v.name?'selected':''}>${esc(v.name)}${!v.is_active?'嚗�歇�𦦵鍂嚗�':''}</option>`).join('')}${row?.venue&&!S.venues.some(v=>v.name===row.venue)?`<option value="${esc(row.venue)}" selected>${esc(row.venue)}嚗�風�脣��㵪�</option>`:''}</select></label><div class="hotel-date-pair"><label>銝𠰴㨃�交�嚗��憛恬�<input type="date" name="card_on_date" value="${esc(row?.card_on_date||'')}"></label><label>銝见㨃�交�嚗��憛恬�<input type="date" name="card_off_date" value="${esc(row?.card_off_date||'')}"></label></div><label>����<select name="status"><option ${row?.status==='�曆���'?'selected':''}>�曆���</option><option ${row?.status==='銝𠰴㨃銝�'?'selected':''}>銝𠰴㨃銝�</option><option ${row?.status==='撌脖���'?'selected':''}>撌脖���</option></select></label><label>�躰酉<textarea name="note" placeholder="�詨‵">${esc(row?.note||'')}</textarea></label><div class="leave-modal-actions"><button class="btn btn-primary" type="submit">�脣�蝝���</button>${row?'<button class="btn btn-outline danger delete-hotel-record" type="button">�芷膄</button>':''}<button class="btn btn-outline hotel-cancel" type="button">�𡝗�</button></div><p id="hotelCardStatus" class="form-status"></p></form></div>`;host.appendChild(modal);const close=()=>modal.remove();modal.querySelector('.leave-close').onclick=close;modal.querySelector('.hotel-cancel').onclick=close;const form=modal.querySelector('#hotelCardEditor');form.onsubmit=async e=>{e.preventDefault();const x=Object.fromEntries(new FormData(form)),t=S.talents.find(v=>v.id===x.talent_id);if(!t)return;const payload={talent_id:t.id,user_id:t.user_id||null,nickname:t.nickname,venue:x.venue,card_on_date:x.card_on_date||null,card_off_date:x.card_off_date||null,status:x.status,note:x.note||null,updated_at:new Date().toISOString()};text('hotelCardStatus','�脣�銝凌��');const {error}=await(row?sb.from('hotel_card_records').update(payload).eq('id',row.id):sb.from('hotel_card_records').insert(payload));if(error){text('hotelCardStatus','�� �脣�憭望�嚗�'+error.message);return}close();await adminHotelCards(t.id)};modal.querySelector('.delete-hotel-record')?.addEventListener('click',async()=>{if(!confirm('蝣箏��芷膄�嗵��鍦�銝𠹺��∠����嚗�'))return;const {error}=await sb.from('hotel_card_records').delete().eq('id',row.id);if(error){alert('�芷膄憭望�');return}close();await adminHotelCards()});
+  const host=el('hotelModalHost')||document.body,modal=document.createElement('div');modal.className='leave-modal-backdrop';modal.innerHTML=`<div class="leave-modal"><div class="leave-modal-head"><div><p class="eyebrow">HOTEL RECORD</p><h3>${row?'編輯':'新增'}上下卡紀錄</h3></div><button class="leave-close" type="button">×</button></div><form id="hotelCardEditor" class="hotel-card-editor"><label>公關<select name="talent_id" required><option value="">請選擇</option>${S.talents.map(t=>`<option value="${t.id}" ${(row?.talent_id||focusTalentId)===t.id?'selected':''}>${esc(t.nickname)}</option>`).join('')}</select></label><label>店家<select name="venue" required><option value="">請選擇店家</option>${S.venues.filter(v=>v.is_active||v.name===row?.venue).map(v=>`<option value="${esc(v.name)}" ${row?.venue===v.name?'selected':''}>${esc(v.name)}${!v.is_active?'（已停用）':''}</option>`).join('')}${row?.venue&&!S.venues.some(v=>v.name===row.venue)?`<option value="${esc(row.venue)}" selected>${esc(row.venue)}（歷史店名）</option>`:''}</select></label><div class="hotel-date-pair"><label>上卡日期（選填）<input type="date" name="card_on_date" value="${esc(row?.card_on_date||'')}"></label><label>下卡日期（選填）<input type="date" name="card_off_date" value="${esc(row?.card_off_date||'')}"></label></div><label>狀態<select name="status"><option ${row?.status==='曾上卡'?'selected':''}>曾上卡</option><option ${row?.status==='上卡中'?'selected':''}>上卡中</option><option ${row?.status==='已下卡'?'selected':''}>已下卡</option></select></label><label>備註<textarea name="note" placeholder="選填">${esc(row?.note||'')}</textarea></label><div class="leave-modal-actions"><button class="btn btn-primary" type="submit">儲存紀錄</button>${row?'<button class="btn btn-outline danger delete-hotel-record" type="button">刪除</button>':''}<button class="btn btn-outline hotel-cancel" type="button">取消</button></div><p id="hotelCardStatus" class="form-status"></p></form></div>`;host.appendChild(modal);const close=()=>modal.remove();modal.querySelector('.leave-close').onclick=close;modal.querySelector('.hotel-cancel').onclick=close;const form=modal.querySelector('#hotelCardEditor');form.onsubmit=async e=>{e.preventDefault();const x=Object.fromEntries(new FormData(form)),t=S.talents.find(v=>v.id===x.talent_id);if(!t)return;const payload={talent_id:t.id,user_id:t.user_id||null,nickname:t.nickname,venue:x.venue,card_on_date:x.card_on_date||null,card_off_date:x.card_off_date||null,status:x.status,note:x.note||null,updated_at:new Date().toISOString()};text('hotelCardStatus','儲存中…');const {error}=await(row?sb.from('hotel_card_records').update(payload).eq('id',row.id):sb.from('hotel_card_records').insert(payload));if(error){text('hotelCardStatus','❌ 儲存失敗：'+error.message);return}close();await adminHotelCards(t.id)};modal.querySelector('.delete-hotel-record')?.addEventListener('click',async()=>{if(!confirm('確定刪除這筆酒店上下卡紀錄嗎？'))return;const {error}=await sb.from('hotel_card_records').delete().eq('id',row.id);if(error){alert('刪除失敗');return}close();await adminHotelCards()});
 }
-function adminV108Setup(name){return `<div class="member-setup-card"><strong>${name}撠𡁏𧊋��𦻖鞈��摨�</strong><p>隢讠Ⅱ隤� Supabase 撠齿�鞈��銵刻�甈𢠃�閮剖�敺䕘��漤��唳㟲��雯蝡踺��</p></div>`}
+function adminV108Setup(name){return `<div class="member-setup-card"><strong>${name}尚未連接資料庫</strong><p>請確認 Supabase 對應資料表與權限設定後，再重新整理網站。</p></div>`}
 
 function mondayOf(dateLike){
  const d=new Date(dateLike);
@@ -2228,7 +2228,7 @@ function addDaysIso(iso,n){
  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function weekLabel(start){
- return `${twDate(start)}嚚�${twDate(addDaysIso(start,6))}`;
+ return `${twDate(start)}～${twDate(addDaysIso(start,6))}`;
 }
 function workDaysForTalentWeek(talent,weekStart){
  const end=addDaysIso(weekStart,6);
@@ -2258,32 +2258,32 @@ function talentSectionStats(talent){
  return {rows,count:rows.length,best,worst,latest,previous,diff,pct};
 }
 function sectionDeltaText(stats){
- if(stats.diff===null)return '撠𡁶��滢��勗虾瘥磰�';
+ if(stats.diff===null)return '尚無前一週可比較';
  const sign=stats.diff>0?'+':'';
- if(stats.pct===null)return `${sign}${stats.diff} 蝭�`;
+ if(stats.pct===null)return `${sign}${stats.diff} 節`;
  const pctSign=stats.pct>0?'+':'';
- return `${sign}${stats.diff} 蝭�嚗�${pctSign}${stats.pct.toFixed(1)}%嚗头;
+ return `${sign}${stats.diff} 節（${pctSign}${stats.pct.toFixed(1)}%）`;
 }
 function renderTalentSectionStats(talentId){
  const t=S.talents.find(x=>x.id===talentId);if(!t)return;
  const st=talentSectionStats(t);
- el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-sections">�� 餈𥪜�蝭��貊絞閮�</button><p class="eyebrow">WEEKLY SECTIONS</p><h2>${esc(t.nickname)}嚚𦦵��貊���</h2></div></div>
+ el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-sections">← 返回節數統計</button><p class="eyebrow">WEEKLY SECTIONS</p><h2>${esc(t.nickname)}｜節數紀錄</h2></div></div>
  <div class="section-summary-card">
-   <h3>�桀�蝯梯�</h3>
+   <h3>目前統計</h3>
    ${st.count?`
    <div class="section-summary-grid">
-     <div><span>蝝舐��望彍</span><strong>${st.count} ��</strong></div>
-     <div><span>�� 銝��望�雿喟���</span><strong>${st.best.sections} 蝭�</strong><small>��雿喲�梧�${weekLabel(st.best.week_start)}<br>銝羓号憭拇彍嚗�${st.best.workDays} 憭�</small></div>
-     <div><span>�� 銝��望�雿𡒊���</span><strong>${st.worst.sections} 蝭�</strong><small>��雿𡡞�梧�${weekLabel(st.worst.week_start)}<br>銝羓号憭拇彍嚗�${st.worst.workDays} 憭�</small></div>
-     <div><span>��餈睲���</span><strong>${st.latest.sections} 蝭�</strong><small>${weekLabel(st.latest.week_start)}<br>頛��銝��梧�${sectionDeltaText(st)}</small></div>
-   </div>`:'<p class="empty">�桀�����厩泵��絞閮��隞嗥��梯��踺��㟲�望��匧祕�𥕢��剔��望活銝滨��交�擃矋���雿𡒊絞閮���</p>'}
+     <div><span>累積週數</span><strong>${st.count} 週</strong></div>
+     <div><span>🏆 一週最佳紀錄</span><strong>${st.best.sections} 節</strong><small>最佳週：${weekLabel(st.best.week_start)}<br>上班天數：${st.best.workDays} 天</small></div>
+     <div><span>📉 一週最低紀錄</span><strong>${st.worst.sections} 節</strong><small>最低週：${weekLabel(st.worst.week_start)}<br>上班天數：${st.worst.workDays} 天</small></div>
+     <div><span>最近一週</span><strong>${st.latest.sections} 節</strong><small>${weekLabel(st.latest.week_start)}<br>較前一週：${sectionDeltaText(st)}</small></div>
+   </div>`:'<p class="empty">目前還沒有符合統計條件的週資料。整週沒有實際上班的週次不納入最高／最低統計。</p>'}
  </div>
  <section class="attendance-card">
-   <h3>甇瑕蟮�望活</h3>
+   <h3>歷史週次</h3>
    ${S.weeklySections.filter(x=>x.talent_id===t.id).sort((a,b)=>b.week_start.localeCompare(a.week_start)).map(x=>{
       const wd=workDaysForTalentWeek(t,x.week_start);
-      return `<div class="record"><div class="record-main"><strong>${weekLabel(x.week_start)}嚚�${x.sections} 蝭�</strong><small>銝羓号憭拇彍嚗�${wd} 憭�${wd===0?'嚚𨀣𧋦�曹�蝝滚���雿喉���雿𡒊絞閮�':''}</small></div></div>`;
-   }).join('')||'<p class="empty">撠𡁶�甇瑕蟮蝭��詻��</p>'}
+      return `<div class="record"><div class="record-main"><strong>${weekLabel(x.week_start)}｜${x.sections} 節</strong><small>上班天數：${wd} 天${wd===0?'｜本週不納入最佳／最低統計':''}</small></div></div>`;
+   }).join('')||'<p class="empty">尚無歷史節數。</p>'}
  </section>`;
  document.querySelector('.back-sections').onclick=()=>renderAdminTab('sections');
 }
@@ -2297,23 +2297,23 @@ function adminSections(){
    return `<div class="section-entry-row">
      <div class="section-person">
        <strong>${esc(t.nickname)}</strong>
-       <small>${st.count?`蝝舐� ${st.count} �梧���餈� ${st.latest?.sections??'��'} 蝭�`:'撠𡁶�蝝���'}</small>
+       <small>${st.count?`累積 ${st.count} 週｜最近 ${st.latest?.sections??'—'} 節`:'尚無紀錄'}</small>
      </div>
-     <label class="section-input-wrap">�祇�梁���
-       <input type="number" min="0" max="10000" step="1" class="section-input" data-id="${t.id}" value="${rec?rec.sections:''}" placeholder="頛詨�蝭���">
+     <label class="section-input-wrap">本週節數
+       <input type="number" min="0" max="10000" step="1" class="section-input" data-id="${t.id}" value="${rec?rec.sections:''}" placeholder="輸入節數">
      </label>
-     <button class="mini-btn section-view" data-id="${t.id}">�亦�蝯梯�</button>
+     <button class="mini-btn section-view" data-id="${t.id}">查看統計</button>
    </div>`;
  }).join('');
- el('panel').innerHTML=`<div class="admin-section-title"><div><p class="eyebrow">WEEKLY SECTIONS</p><h2>蝭��貊絞閮�</h2><p class="panel-note">瘥誯�望嚉�唬蜓蝞∠��貉”敺䕘��券�躰ㄐ銝�甈∟撓�乓��10 ���嚗�1 蝭���</p></div></div>
+ el('panel').innerHTML=`<div class="admin-section-title"><div><p class="eyebrow">WEEKLY SECTIONS</p><h2>節數統計</h2><p class="panel-note">每週拿到主管節數表後，在這裡一次輸入。10 分鐘＝1 節。</p></div></div>
  <div class="section-toolbar">
-   <label>蝯梯��望活<input type="date" id="sectionWeek" value="${thisMonday}"></label>
-   <button class="btn btn-primary" id="saveSections">�脣��祇�梁���</button>
+   <label>統計週次<input type="date" id="sectionWeek" value="${thisMonday}"></label>
+   <button class="btn btn-primary" id="saveSections">儲存本週節數</button>
  </div>
  <p class="section-week-hint" id="sectionWeekHint">${weekLabel(thisMonday)}</p>
- <div id="sectionRows">${rows||'<p class="empty">�桀�瘝埝��舐絞閮���祇���</p>'}</div>
+ <div id="sectionRows">${rows||'<p class="empty">目前沒有可統計的公關。</p>'}</div>
  <p id="sectionSaveStatus" class="form-status"></p>
- <div class="section-rule-note">閬誩�嚗𡁏㟲�望��匧祕�𥕢��剔��望活嚗䔶�蝝滚���雿喉���雿𡒊絞閮��銋煺���誑 0 蝭��劐�蝝�����</div>`;
+ <div class="section-rule-note">規則：整週沒有實際上班的週次，不納入最佳／最低統計，也不會以 0 節拉低紀錄。</div>`;
 
  const weekInput=el('sectionWeek');
  const repaint=()=>{
@@ -2336,41 +2336,41 @@ function adminSections(){
      .filter(inp=>inp.value!=='')
      .map(inp=>({talent_id:inp.dataset.id,week_start:monday,sections:Number(inp.value)}))
      .filter(x=>Number.isInteger(x.sections)&&x.sections>=0);
-   if(!payloads.length){text('sectionSaveStatus','隢贝秐撠𤏸撓�乩�雿滚��𦦵�蝭��詻��');return}
-   if(!confirm(`蝣箏��脣� ${weekLabel(monday)} �� ${payloads.length} 雿滚��𦦵��詨�嚗鬮))return;
+   if(!payloads.length){text('sectionSaveStatus','請至少輸入一位公關的節數。');return}
+   if(!confirm(`確定儲存 ${weekLabel(monday)} 的 ${payloads.length} 位公關節數嗎？`))return;
    el('saveSections').disabled=true;
-   text('sectionSaveStatus','�脣�銝凌��');
+   text('sectionSaveStatus','儲存中…');
    const {error}=await sb.from('weekly_sections').upsert(payloads,{onConflict:'talent_id,week_start'});
    if(error){
      console.error(error);
-     text('sectionSaveStatus','�� �脣�憭望�嚗諹�蝔滚��滩岫��');
+     text('sectionSaveStatus','❌ 儲存失敗，請稍後再試。');
      el('saveSections').disabled=false;
      return;
    }
-   text('sectionSaveStatus','�� 撌脣�摮䀹𧋦�梁��詻��');
+   text('sectionSaveStatus','✅ 已儲存本週節數。');
    await refreshAdmin();
  };
 }
 
 function adminVenues(){
- el('panel').innerHTML=`<div class="admin-section-title"><h2>摨堒振蝞∠�</h2><button class="mini-btn" id="addVenue">嚗� �啣�摨堒振</button></div>${S.venues.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.name)}嚚�${esc(x.area||'�芸‵�啣�')}</strong><small>${esc(x.contact||'')}</small></div><div class="venue-actions"><label><input class="va" data-id="${x.id}" type="checkbox" ${x.is_active?'checked':''}> �毺鍂</label><button class="mini-btn venue-delete" data-id="${x.id}" data-name="${esc(x.name)}">蝘駁膄</button></div></div>`).join('')||'<p class="empty">�桀�瘝埝�摨堒振��</p>'}<div id="inlineForm"></div>`;
+ el('panel').innerHTML=`<div class="admin-section-title"><h2>店家管理</h2><button class="mini-btn" id="addVenue">＋ 新增店家</button></div>${S.venues.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.name)}｜${esc(x.area||'未填地區')}</strong><small>${esc(x.contact||'')}</small></div><div class="venue-actions"><label><input class="va" data-id="${x.id}" type="checkbox" ${x.is_active?'checked':''}> 啟用</label><button class="mini-btn venue-delete" data-id="${x.id}" data-name="${esc(x.name)}">移除</button></div></div>`).join('')||'<p class="empty">目前沒有店家。</p>'}<div id="inlineForm"></div>`;
  document.querySelectorAll('.va').forEach(c=>c.onchange=async()=>{await sb.from('venues').update({is_active:c.checked}).eq('id',c.dataset.id);await refreshAdmin()});
  document.querySelectorAll('.venue-delete').forEach(btn=>btn.onclick=async()=>{
-   if(!confirm(`蝣箏�閬�宏�扎��${btn.dataset.name}�滚�嚗髿n\n蝘駁膄敺��銝滚��箇𣶹�典�摰嗥恣����啁��梁号�詨鱓銝准��`))return;
+   if(!confirm(`確定要移除「${btn.dataset.name}」嗎？\n\n移除後將不再出現在店家管理與新的報班選單中。`))return;
    btn.disabled=true;
    const {error}=await sb.from('venues').delete().eq('id',btn.dataset.id);
-   if(error){alert('蝘駁膄憭望�嚗諹�蝔滚��滩岫��');btn.disabled=false;return}
+   if(error){alert('移除失敗，請稍後再試。');btn.disabled=false;return}
    await refreshAdmin();
  });
  el('addVenue').onclick=()=>quickForm('venue');
 }
 function adminAnnouncements(){
- el('panel').innerHTML=`<div class="admin-section-title"><h2>�砍�蝞∠�</h2><button class="mini-btn" id="addAnn">嚗� �啣��砍�</button></div>${S.announcements.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.title)}</strong><small>${esc(x.content)}</small></div><label><input class="aa" data-id="${x.id}" type="checkbox" ${x.is_active?'checked':''}> �祇�</label></div>`).join('')||'<p class="empty">�桀�瘝埝��砍���</p>'}<div id="inlineForm"></div>`;
+ el('panel').innerHTML=`<div class="admin-section-title"><h2>公告管理</h2><button class="mini-btn" id="addAnn">＋ 新增公告</button></div>${S.announcements.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.title)}</strong><small>${esc(x.content)}</small></div><label><input class="aa" data-id="${x.id}" type="checkbox" ${x.is_active?'checked':''}> 公開</label></div>`).join('')||'<p class="empty">目前沒有公告。</p>'}<div id="inlineForm"></div>`;
  document.querySelectorAll('.aa').forEach(c=>c.onchange=async()=>{await sb.from('announcements').update({is_active:c.checked}).eq('id',c.dataset.id);await refreshAdmin()});el('addAnn').onclick=()=>quickForm('ann');
 }
 function quickForm(kind){
- const defs={talent:`<input name="nickname" placeholder="�嘥�" required><input name="contact" placeholder="LINE嚗誯𤓖閰�"><input name="area" placeholder="�啣�"><input name="instagram" placeholder="Instagram">`,venue:`<input name="name" placeholder="摨堒振�滨迂" required><input name="area" placeholder="�啣�"><input name="contact" placeholder="�舐窗鈭綽��餉店">`,ann:`<input name="title" placeholder="�砍�璅䠷�" required><textarea name="content" placeholder="�砍��批捆" required></textarea>`};
- el('inlineForm').innerHTML=`<form id="quickForm" class="inline-form">${defs[kind]}<button class="mini-btn">�脣�</button></form>`;
+ const defs={talent:`<input name="nickname" placeholder="藝名" required><input name="contact" placeholder="LINE／電話"><input name="area" placeholder="地區"><input name="instagram" placeholder="Instagram">`,venue:`<input name="name" placeholder="店家名稱" required><input name="area" placeholder="地區"><input name="contact" placeholder="聯絡人／電話">`,ann:`<input name="title" placeholder="公告標題" required><textarea name="content" placeholder="公告內容" required></textarea>`};
+ el('inlineForm').innerHTML=`<form id="quickForm" class="inline-form">${defs[kind]}<button class="mini-btn">儲存</button></form>`;
  el('quickForm').onsubmit=async e=>{e.preventDefault();const x=Object.fromEntries(new FormData(e.currentTarget));if(kind==='talent')await sb.from('talents').insert({nickname:x.nickname,contact:x.contact||null,area:x.area||null,instagram:x.instagram||null});if(kind==='venue')await sb.from('venues').insert({name:x.name,area:x.area||null,contact:x.contact||null});if(kind==='ann')await sb.from('announcements').insert({title:x.title,content:x.content});await refreshAdmin()};
 }
 
@@ -2379,10 +2379,10 @@ document.addEventListener("click",function(e){
   if(!b)return;
   const f=document.getElementById("profileForm");
   if(!f)return;
-  b.classList.add("is-saving"); b.innerHTML='�脣�銝� <i>��</i>';
+  b.classList.add("is-saving"); b.innerHTML='儲存中 <i>…</i>';
   if(typeof f.requestSubmit==="function")f.requestSubmit();
   else f.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
-  setTimeout(function(){b.classList.remove("is-saving");b.innerHTML='撌脤��枂�脣� <i>��</i>';setTimeout(function(){b.innerHTML='�脣��抒� <i>��</i>';},1400);},450);
+  setTimeout(function(){b.classList.remove("is-saving");b.innerHTML='已送出儲存 <i>✓</i>';setTimeout(function(){b.innerHTML='儲存照片 <i>✓</i>';},1400);},450);
 });
 
 
