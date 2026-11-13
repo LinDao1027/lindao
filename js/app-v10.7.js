@@ -139,18 +139,23 @@ function validTalentUsername(v){
 }
 
 function renderTalentAuth(msg=''){
+  document.body.classList.add('auth-daylight');
+  const h=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',hour:'2-digit',hour12:false}).format(new Date()));
+  const hello=h>=5&&h<11?'早安':h>=11&&h<18?'午安':'晚安';
   el('talentPortal').innerHTML=`
-  <div class="portal-auth portal-auth-v79">
-    <div class="portal-auth-brand"><img src="assets/lindao-emblem-transparent.png" alt=""><span>ENTERTAINMENT</span></div>
-    <div class="portal-intro"><p class="eyebrow">PRIVATE MEMBER ACCESS</p><h1>公關專區</h1><p>專屬會員登入。完成報班、查看班表、公告與個人資料。</p></div>
-    <div class="auth-tabs"><button class="auth-tab active" data-mode="login">登入</button><button class="auth-tab" data-mode="signup">第一次註冊</button></div>
+  <div class="daylight-auth">
+    <div class="dl-brand"><span class="dl-mark"><img src="assets/lindao-emblem-transparent.png" alt=""></span><span><strong>林刀娛樂</strong><small>TALENT PORTAL</small></span></div>
+    <div class="dl-intro"><p class="dl-hello">${hello}，歡迎回來</p><h1>登入公關專區</h1><p>一個帳號，處理報班、班表與公告。</p></div>
+    <div class="dl-tabs" role="tablist"><button class="auth-tab active" data-mode="login" type="button">登入</button><button class="auth-tab" data-mode="signup" type="button">第一次使用</button></div>
     <div id="authBox"></div>
+    <p class="dl-help">忘記密碼，請直接聯絡經紀</p>
+    <p class="dl-foot">資料僅供班務使用．不對外公開</p>
   </div>`;
   const show=mode=>{
     document.querySelectorAll('.auth-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
     el('authBox').innerHTML=mode==='login'
-    ? `<form id="talentLoginForm" class="form-card portal-form"><label>Email 或使用者帳號<input name="identifier" required autocomplete="username" placeholder="例如：xiaodao88 或 name@email.com"></label><small class="login-helper">Email、使用者帳號都可以登入，不需要切換模式。</small><label>密碼<input type="password" name="password" required autocomplete="current-password"></label><button class="btn btn-primary">登入公關專區</button><p id="talentAuthStatus" class="form-status">${esc(msg)}</p></form>`
-    : `<form id="talentSignupForm" class="form-card portal-form"><label>藝名／暱稱<input name="nickname" maxlength="40" required></label><label>使用者帳號<input name="username" minlength="3" maxlength="20" required autocomplete="username" placeholder="3–20 位英文小寫、數字、. 或 _"></label><small class="login-helper">之後可直接用這個短帳號登入，也可以繼續用 Email。</small><label>LINE／手機<input name="contact" maxlength="80" required></label><label>居住地區<input name="area" maxlength="40" placeholder="例如：台北／新北"></label><label>Email<input type="email" name="email" required autocomplete="email"></label><label>設定密碼<input type="password" name="password" minlength="8" required autocomplete="new-password"></label><label class="check"><input type="checkbox" required> 我確認已達適用工作的法定年齡，並同意將帳號資料用於班務管理。</label><button class="btn btn-primary">建立公關帳號</button><p id="talentAuthStatus" class="form-status"></p></form>`;
+    ? `<form id="talentLoginForm" class="dl-card"><label>帳號<input name="identifier" required autocomplete="username" placeholder="使用者帳號或 Email"></label><label>密碼<input type="password" name="password" required autocomplete="current-password" placeholder="輸入密碼"></label><button class="dl-submit">登入</button><p id="talentAuthStatus" class="form-status">${esc(msg)}</p></form>`
+    : `<form id="talentSignupForm" class="dl-card"><label>藝名／暱稱<input name="nickname" maxlength="40" required></label><label>使用者帳號<input name="username" minlength="3" maxlength="20" required autocomplete="username" placeholder="3–20 位英文小寫、數字、. 或 _"></label><small class="login-helper">之後可直接用這個短帳號登入，也可以繼續用 Email。</small><label>LINE／手機<input name="contact" maxlength="80" required></label><label>居住地區<input name="area" maxlength="40" placeholder="例如：台北／新北"></label><label>Email<input type="email" name="email" required autocomplete="email"></label><label>設定密碼<input type="password" name="password" minlength="8" required autocomplete="new-password"></label><label class="check"><input type="checkbox" required> 我確認已達適用工作的法定年齡，並同意將帳號資料用於班務管理。</label><button class="dl-submit">建立公關帳號</button><p id="talentAuthStatus" class="form-status"></p></form>`;
     if(mode==='login'){
       el('talentLoginForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');const x=Object.fromEntries(new FormData(f));b.disabled=true;text('talentAuthStatus','登入中…');try{await talentLoginWithIdentifier(x.identifier,x.password);location.reload()}catch(err){console.error(err);text('talentAuthStatus','❌ 登入失敗，請確認使用者帳號／Email 與密碼。');b.disabled=false}};
     }else{
@@ -197,6 +202,7 @@ async function renderTalentDashboard(p,email){
     ? `<img src="${esc(memberPortrait)}" alt="${esc(p.nickname||'公關')} 會員形象照">`
     : `<div class="vip-portrait-fallback"><span>✦</span><b>${esc((p.nickname||'?').slice(0,1))}</b><small>PRIVATE MEMBER</small></div>`;
 
+  document.body.classList.remove('auth-daylight');
   el('talentPortal').innerHTML=`
   <div class="portal-shell portal-v79">
     <section class="member-command-card">
@@ -925,40 +931,19 @@ async function adminInit(){
 }
 adminInit();
 function renderAdminLogin(msg=''){
- document.body.classList.add('admin-login-mode');
+ document.body.classList.add('admin-login-mode','auth-daylight');
  el('adminApp').classList.add('admin-login-root');
  el('adminApp').innerHTML=`
- <div class="admin-login-page">
-   <div class="admin-login-ambient" aria-hidden="true">
-     <span class="admin-login-orb orb-one"></span>
-     <span class="admin-login-orb orb-two"></span>
-     <span class="admin-login-star star-one">✦</span>
-     <span class="admin-login-star star-two">◇</span>
-   </div>
-
-   <section class="admin-login-shell">
-     <div class="admin-login-brand">
-       <img src="assets/lindao-emblem-transparent.png" alt="">
-       <div><span>ENTERTAINMENT</span><strong>林刀娛樂</strong></div>
-     </div>
-
-     <div class="admin-login-copy">
-       <p class="eyebrow">EXECUTIVE ACCESS</p>
-       <h1>經紀管理中心</h1>
-       <p>僅限已授權管理員登入。內部班務、公關資料與營運資訊皆受權限保護。</p>
-     </div>
-
-     <form id="loginForm" class="admin-login-form">
-       <label><span>Email</span><input type="email" name="email" required autocomplete="username" placeholder="管理員 Email"></label>
-       <label><span>密碼</span><input type="password" name="password" required autocomplete="current-password" placeholder="輸入密碼"></label>
-       <button class="admin-login-submit" type="submit"><span>登入管理後台</span><b>↗</b></button>
-       <p id="loginStatus" class="form-status">${esc(msg)}</p>
-     </form>
-
-     <div class="admin-login-foot">
-       <span>◆</span><p>專業 · 誠信 · 安全 · 隱私</p><small>PRIVATE MANAGEMENT CONSOLE</small>
-     </div>
-   </section>
+ <div class="daylight-auth is-admin">
+   <div class="dl-brand"><span class="dl-mark"><img src="assets/lindao-emblem-transparent.png" alt=""></span><span><strong>林刀娛樂</strong><small>MANAGEMENT CONSOLE</small></span></div>
+   <div class="dl-intro"><p class="dl-hello">經紀專用</p><h1>登入經紀管理中心</h1><p>班務、公關資料與營運資訊，都受權限保護。</p></div>
+   <form id="loginForm" class="dl-card">
+     <label>Email<input type="email" name="email" required autocomplete="username" placeholder="管理員 Email"></label>
+     <label>密碼<input type="password" name="password" required autocomplete="current-password" placeholder="輸入密碼"></label>
+     <button class="dl-submit" type="submit">登入</button>
+     <p id="loginStatus" class="form-status">${esc(msg)}</p>
+   </form>
+   <p class="dl-foot">專業．誠信．安全．隱私</p>
  </div>`;
  el('loginForm').onsubmit=async e=>{
    e.preventDefault();
@@ -969,7 +954,7 @@ function renderAdminLogin(msg=''){
  };
 }
 function renderAdminShell(email){
- document.body.classList.remove('admin-login-mode');
+ document.body.classList.remove('admin-login-mode','auth-daylight');
  el('adminApp')?.classList.remove('admin-login-root');
  const nav=[
    ['dashboard','總覽','OVERVIEW','⌂'],
