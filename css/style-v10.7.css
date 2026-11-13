@@ -12410,3 +12410,29 @@ html.dl body.public-body #work{position:relative!important;z-index:0;overflow:vi
 html.dl body.public-body #work::before{content:""!important;display:block!important;position:absolute!important;top:0!important;left:50%!important;width:100vw!important;height:260px!important;transform:translateX(-50%)!important;background:linear-gradient(180deg,#141116 0,#3b2f33 60px,#9a857a 130px,#e6dacb 190px,rgba(246,241,231,0) 260px)!important;z-index:-1!important;pointer-events:none;border:0!important;opacity:1!important;border-radius:0!important}
 html.dl body.public-body{overflow-x:hidden}
 html.dl body.public-body .conversion-hero{border-bottom:0!important;box-shadow:none!important}html.dl body.public-body #work{border-top:0!important}html.dl body.public-body .conversion-hero::before{border-bottom:0!important}
+
+/* ===== V14 便利功能 ===== */
+/* 公關卡片：出勤率置中 */
+html.dl body.admin-body .talent-card-glance{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;padding:14px 12px 12px!important;text-align:center}
+html.dl body.admin-body .talent-card-glance small{font-size:12px;letter-spacing:.12em;color:#6a5f54!important;-webkit-text-fill-color:#6a5f54!important}
+html.dl body.admin-body .talent-card-glance b{font-family:"Noto Serif TC",serif;font-size:26px;line-height:1.2;font-weight:700}
+html.dl body.admin-body .talent-card-glance b:not(.good):not(.mid):not(.bad){color:#8a8076!important;-webkit-text-fill-color:#8a8076!important}
+html.dl body.admin-body .talent-card-glance em{font-style:normal;font-size:12.5px;color:#7d6729!important;-webkit-text-fill-color:#7d6729!important;margin-top:2px}
+html.dl body.admin-body .talent-card-select{margin:10px 12px 12px!important;width:calc(100% - 24px)!important;text-align:center;text-align-last:center}
+@media (max-width:760px){
+ html.dl body.admin-body .talent-card-glance{flex-direction:row!important;justify-content:flex-start!important;gap:8px!important;padding:2px 0 0!important}
+ html.dl body.admin-body .talent-card-glance b{font-size:18px}
+ html.dl body.admin-body .talent-card-glance em{margin:0 0 0 auto}
+ html.dl body.admin-body .talent-card-select{margin:6px 0 0!important;width:100%!important}
+}
+/* 複製班表按鈕 */
+html.dl .copy-schedule-btn{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:48px;padding:6px 18px;border-radius:14px;border:1px solid rgba(227,199,138,.55);background:#fffdf9;color:#3a332c;-webkit-text-fill-color:#3a332c;font:700 14px "Noto Sans TC",sans-serif;cursor:pointer;box-shadow:0 10px 24px -14px rgba(26,22,29,.4)}
+html.dl .copy-schedule-btn::before{content:"⧉ ";color:#7d6729}
+html.dl .copy-schedule-btn small{font-weight:500;font-size:11px;color:#6a5f54;-webkit-text-fill-color:#6a5f54}
+html.dl .copy-schedule-btn:hover{border-color:#c9a45a}
+/* 履歷：複製聯絡方式 */
+html.dl .copy-btn{margin-left:8px;padding:3px 10px;border-radius:999px;border:1px solid #e3d9c8;background:#fbf7f0;color:#7d6729;-webkit-text-fill-color:#7d6729;font:600 12px "Noto Sans TC",sans-serif;cursor:pointer;vertical-align:middle}
+html.dl .copy-btn:hover{border-color:#c9a45a}
+/* 公關：照上週報班 */
+html.dl body.portal-body .repeat-last-week{background:#1c1916!important;color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important;border-color:#1c1916!important}
+html.dl body.portal-body .booking-quick-row{flex-wrap:wrap}

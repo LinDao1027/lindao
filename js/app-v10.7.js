@@ -842,6 +842,10 @@ function bookingComposer(p,venues,pastRows=[]){
   const title=showingNextWeek?'下週報班':'本週報班';
   const range=showingNextWeek?'下週一 ～ 下週日':'本週一 ～ 本週日';
 
+  const firstIso=dates&&dates[0]?dates[0].iso:null;
+  let lastWeekDays=[];
+  if(firstIso){const f=new Date(firstIso+'T00:00:00');const lo=new Date(f);lo.setDate(f.getDate()-7);const isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const loIso=isoOf(lo);
+    lastWeekDays=[...new Set(pastRows.filter(x=>x.booking_date>=loIso&&x.booking_date<firstIso&&['pending','confirmed','leave'].includes(x.status)).map(x=>new Date(x.booking_date+'T00:00:00').getDay()))]}
   return `<section class="booking-composer">
     <div class="admin-section-title">
       <div><p class="eyebrow">WEEKLY BOOKING ✦</p><h2>${title}</h2></div>
@@ -855,7 +859,7 @@ function bookingComposer(p,venues,pastRows=[]){
         <input type="checkbox" name="dates" value="${x.iso}" ${done?'disabled':''}>
         <span><b>${weekNames[x.date.getDay()]}</b><small>${done?'已報班 ✓':`${x.date.getMonth()+1}/${x.date.getDate()}`}</small></span>
       </label>`}).join('')}</div>
-      <div class="booking-quick-row"><button type="button" class="mini-btn pick-all-days">全選可報的日子</button><button type="button" class="mini-btn clear-days">清除</button></div>
+      <div class="booking-quick-row">${lastWeekDays.length?`<button type="button" class="mini-btn repeat-last-week" data-days="${lastWeekDays.join(',')}">↻ 照上週的日子</button>`:''}<button type="button" class="mini-btn pick-all-days">全選可報的日子</button><button type="button" class="mini-btn clear-days">清除</button></div>
       <div class="booking-fields booking-fields-simple">
         <label>店家<select name="venue" required><option value="">請選擇</option>${venueNames.map(n=>`<option ${n===lastVenue?'selected':''}>${esc(n)}</option>`).join('')}<option ${lastVenue&&!venueNames.includes(lastVenue)?'selected':''}>其他</option></select></label>
       </div>
@@ -870,6 +874,7 @@ function bindBookingComposer(p){
   const boxes=()=>[...form.querySelectorAll('input[name=dates]:not(:disabled)')];
   const updateBtn=()=>{const n=boxes().filter(x=>x.checked).length,b=form.querySelector('button[type=submit]');if(b)b.textContent=n?`送出 ${n} 天班表`:'請先點選日子'};
   form.querySelector('.pick-all-days')?.addEventListener('click',()=>{boxes().forEach(x=>x.checked=true);updateBtn()});
+  form.querySelector('.repeat-last-week')?.addEventListener('click',e=>{const days=e.currentTarget.dataset.days.split(',').map(Number);boxes().forEach(x=>{x.checked=days.includes(new Date(x.value+'T00:00:00').getDay())});updateBtn()});
   form.querySelector('.clear-days')?.addEventListener('click',()=>{boxes().forEach(x=>x.checked=false);updateBtn()});
   form.addEventListener('change',e=>{if(e.target.name==='dates')updateBtn()});
   updateBtn();
@@ -1484,6 +1489,30 @@ function openManualBookingModal(){
   });
 }
 
+// ===== V14：複製工具 =====
+async function copyText(text,okMsg='已複製'){
+ try{await navigator.clipboard.writeText(text)}catch(e){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove()}
+ if(typeof toast==='function')toast(okMsg);
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.copy-btn');if(!b)return;e.preventDefault();e.stopPropagation();copyText(b.dataset.copy,'已複製：'+b.dataset.copy)});
+function buildScheduleText(rows,tab){
+ const W=['日','一','二','三','四','五','六'];
+ const live=rows.filter(x=>['confirmed','pending','leave'].includes(x.status));
+ const dates=[...new Set(live.map(x=>x.booking_date))].sort();
+ const head=tab==='today'?'今日班表':tab==='week'?'本週班表':'下週班表';
+ const out=[`【林刀娛樂｜${head}】`];
+ dates.forEach(d=>{
+  const dt=new Date(d+'T00:00:00');
+  out.push('',`${dt.getMonth()+1}/${dt.getDate()}（${W[dt.getDay()]}）`);
+  const day=live.filter(x=>x.booking_date===d);
+  const byVenue={};
+  day.filter(x=>x.status!=='leave').forEach(x=>{(byVenue[x.venue||'未填店家']=byVenue[x.venue||'未填店家']||[]).push(x.nickname+(x.status==='pending'?'（待確認）':''))});
+  Object.keys(byVenue).sort().forEach(v=>out.push(`・${v}：${byVenue[v].join('、')}`));
+  const lv=day.filter(x=>x.status==='leave');
+  if(lv.length)out.push(`・請假：${lv.map(x=>x.nickname+(x.leave_type?`（${x.leave_type}）`:'')).join('、')}`);
+ });
+ return out.join('\n');
+}
 function statusQuick(x){
  const st=x.status;
  const btn=(v,label,cls)=>`<button type="button" class="sq-btn ${cls} ${st===v?'is-on':''}" data-sq="${v}" ${st===v?'aria-pressed="true"':''}>${label}</button>`;
@@ -1606,10 +1635,11 @@ function adminBookings(tab){
 
  activateAdminGroup('schedule');
  const pendingHere=rows.filter(x=>x.status==='pending').length;
- el('panel').innerHTML=`${scheduleCenterBar(tab)}<div class="admin-section-title compact-title"><div><h2>${title}</h2><span>${rows.length} 筆</span></div>${tab==='pendingall'&&pendingHere?`<button class="btn btn-primary confirm-every-pending" type="button">✓ 全部公關確認（${pendingHere} 筆）</button>`:''}</div>${isWeekView?`<div class="week-schedule-note"><span>✦</span><p>${tab==='nextweek'?'提前查看公關已報的下週班表，方便安排人力與提早確認。':'依日期整理本週班表，直接看每天有哪些公關上班；漏登歷史班表可直接用上方「補登班表」。'}</p></div>${html}`:(rows.length?html:'<p class="empty">目前沒有班表。</p>')}
+ el('panel').innerHTML=`${scheduleCenterBar(tab)}<div class="admin-section-title compact-title"><div><h2>${title}</h2><span>${rows.length} 筆</span></div>${tab==='pendingall'&&pendingHere?`<button class="btn btn-primary confirm-every-pending" type="button">✓ 全部公關確認（${pendingHere} 筆）</button>`:''}${['today','week','nextweek'].includes(tab)&&rows.length?`<button class="copy-schedule-btn" type="button">複製班表文字<small>貼到 LINE 群組</small></button>`:''}</div>${isWeekView?`<div class="week-schedule-note"><span>✦</span><p>${tab==='nextweek'?'提前查看公關已報的下週班表，方便安排人力與提早確認。':'依日期整理本週班表，直接看每天有哪些公關上班；漏登歷史班表可直接用上方「補登班表」。'}</p></div>${html}`:(rows.length?html:'<p class="empty">目前沒有班表。</p>')}
  <div id="leaveModalHost"></div>
  <div id="manualBookingHost"></div>`;
  bindScheduleCenterBar();
+ document.querySelector('.copy-schedule-btn')?.addEventListener('click',()=>copyText(buildScheduleText(rows,tab),'班表已複製，可以直接貼到群組'));
  document.querySelectorAll('.bs').forEach(sel=>sel.onchange=async()=>{
    if(sel.value==='leave'){
      openLeaveModal(sel.dataset.id);
@@ -1779,7 +1809,7 @@ function adminTalents(){
        <small>${esc(x.contact||x.email||'未填聯絡方式')}</small>
        ${x.status==='paused'&&x.paused_until?`<small class="pause-until">休檔至 ${esc(x.paused_until)}</small>`:''}
      </div>
-     ${(()=>{const a=calcTalentAttendance(x);return `<div class="talent-card-glance"><span>本月出勤 <b class="${a.scheduled?(a.rate<50?'bad':a.rate<80?'mid':'good'):''}">${a.scheduled?a.rate+'%':'—'}</b></span><span>查看履歷 →</span></div>`})()}
+     ${(()=>{const a=calcTalentAttendance(x);return `<div class="talent-card-glance"><small>本月出勤</small><b class="${a.scheduled?(a.rate<50?'bad':a.rate<80?'mid':'good'):''}">${a.scheduled?a.rate+'%':'—'}</b><em>查看履歷 →</em></div>`})()}
      <select class="status-select ts talent-card-select" data-id="${x.id}">
        ${[['active','上卡中'],['new','待經紀審核'],['paused','休檔中'],['left','已下卡']].map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}
      </select>
@@ -2020,8 +2050,8 @@ function renderTalentProfileAdmin(talentId){
       <div class="application-field"><span>生日</span><b>${esc(t.birthday||'未填')}</b></div>
       <div class="application-field"><span>性別</span><b>${esc(t.gender||'未填')}</b></div>
       <div class="application-field"><span>居住地區</span><b>${esc(t.area||'未填')}</b></div>
-      <div class="application-field"><span>手機／LINE</span><b>${esc(t.contact||'未填')}</b></div>
-      <div class="application-field"><span>Instagram</span><b>${esc(t.instagram||'未填')}</b></div>
+      <div class="application-field"><span>手機／LINE</span><b>${esc(t.contact||'未填')}${t.contact?`<button type="button" class="copy-btn" data-copy="${esc(t.contact)}">複製</button>`:''}</b></div>
+      <div class="application-field"><span>Instagram</span><b>${esc(t.instagram||'未填')}${t.instagram?`<button type="button" class="copy-btn" data-copy="${esc(t.instagram)}">複製</button>`:''}</b></div>
       <div class="application-field"><span>Email</span><b>${esc(t.email||'未填')}</b></div>
       <div class="application-field"><span>身高</span><b>${t.height_cm?esc(t.height_cm)+' cm':'未填'}</b></div>
       <div class="application-field"><span>體重</span><b>${t.weight_kg?esc(t.weight_kg)+' kg':'未填'}</b></div>
