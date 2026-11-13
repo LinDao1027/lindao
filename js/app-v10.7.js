@@ -1355,7 +1355,7 @@ function openManualBookingModal(){
       const beyondNextWeek=weekOffset>1;
       return `<label class="date-chip ${beyondNextWeek?'disabled':''}">
         <input type="checkbox" name="manual_dates" value="${date}" ${beyondNextWeek?'disabled':''}>
-        <span><b>${weekNames[i]}</b><small>${twDate(date)}</small></span>
+        <span><b>${weekNames[i]}</b><small>${Number(date.slice(5,7))}/${Number(date.slice(8,10))}</small></span>
       </label>`;
     }).join('');
     const range=modal.querySelector('#manualWeekRange');

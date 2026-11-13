@@ -11669,3 +11669,45 @@ html.dl .announcement-page-content h2{margin:4px 0 8px;font-size:18px;color:#221
 html.dl .announcement-page-content p{margin:0;white-space:pre-wrap;line-height:1.8;color:#3a332c}
 html.dl .announcement-page-sparkle{display:none}
 html.dl .announcement-page-state,html.dl .announcement-page-empty{padding:28px;border-radius:18px;background:#fffdf9;text-align:center;color:#3a332c}
+
+/* ===== V12.1 精修（依實際畫面檢查） ===== */
+/* 後台：標題卡留白 */
+html.dl body.admin-body .admin-unified-head{padding:24px 28px!important;border-radius:20px!important;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+html.dl body.admin-body .admin-unified-head .eyebrow{margin:0 0 4px}
+@media (min-width:861px){html.dl body.admin-body .admin96-sidebar{min-height:100vh!important;height:100vh!important;position:sticky!important;top:0}}
+/* 全部公關確認：主要深色按鈕 */
+html.dl .confirm-every-pending,html.dl body.admin-body .admin96-action-items .confirm-every-pending{background:#1c1916!important;background-image:none!important;color:#e3c78a!important;border:0!important;box-shadow:0 8px 20px rgba(28,25,22,.18)!important;opacity:1!important}
+html.dl .confirm-every-pending:hover{background:#2a2520!important}
+/* 履歷：近期班表字級 */
+html.dl body.admin-body .profile-recent-row{font-size:15px}
+html.dl body.admin-body .profile-recent-row .v small{font-size:13px}
+html.dl body.admin-body .resume-mini-stats span{font-size:12px!important}
+/* 補登視窗：週切換按鈕可換行 */
+html.dl .manual-week-toolbar{flex-wrap:wrap;gap:8px}
+html.dl .manual-week-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 公關專區：上方留白、重複標籤、狀態切換 */
+html.dl body.portal-body .portal-page{padding-top:20px!important}
+html.dl body.portal-body .member-command-brand,html.dl body.portal-body .member-command-main>.eyebrow{display:none!important}
+html.dl body.portal-body .talent-self-status{display:inline-flex!important;gap:4px!important;padding:4px!important;border-radius:999px!important;background:#ebe3d5!important;border:0!important;box-shadow:none!important}
+html.dl body.portal-body .talent-self-status-btn{font-size:15px!important;font-weight:600!important;padding:9px 18px!important;border-radius:999px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#5f574e!important;text-shadow:none!important;letter-spacing:.04em!important}
+html.dl body.portal-body .talent-self-status-btn span{color:inherit!important;text-shadow:none!important}
+html.dl body.portal-body .talent-self-status-btn.is-current{background:#fffdf9!important;color:#221d18!important;box-shadow:0 2px 8px rgba(108,86,50,.14)!important}
+html.dl body.portal-body .talent-self-status-btn.status-live.is-current .talent-status-dot{background:#2f7a4c!important}
+html.dl body.portal-body .talent-self-status-btn.status-pause.is-current .talent-status-dot{background:#a8484d!important}
+html.dl body.portal-body .talent-status-dot{width:8px!important;height:8px!important;box-shadow:none!important;background:#b9ad9e!important}
+html.dl body.portal-body .talent-status-slash{display:none!important}
+/* 已報班的日期：看得清楚 */
+html.dl body.portal-body .date-chip.is-booked span{opacity:1!important;border-style:dashed!important;background:#f3ece0!important}
+html.dl body.portal-body .date-chip.is-booked b{color:#6a5f54!important}
+html.dl body.portal-body .date-chip.is-booked small{color:#2f7a4c!important;font-weight:600}
+/* 本週／下週班表標題 */
+html.dl body.portal-body .booking-week-head{padding:14px 16px!important;border-radius:14px!important;background:#f3ece0!important;border:0!important;margin-bottom:10px}
+
+/* 招募首頁：諮詢條更精簡 */
+html.dl body.public-body .cv-consult-strip{padding:22px 28px!important;min-height:0!important}
+html.dl body.public-body .cv-consult-strip::before,html.dl body.public-body .cv-consult-strip::after{display:none!important}
+html.dl body.public-body .cv-values::before,html.dl body.public-body .cv-values::after{display:none!important}
+html.dl body.public-body .cv-values{padding-top:0!important}
+/* 諮詢頁：手機隱藏角落印章 */
+@media (max-width:760px){html.dl body.form-body .apply107-seal{display:none!important}}
