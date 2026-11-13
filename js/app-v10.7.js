@@ -86,7 +86,7 @@ async function renderAdminPreviewEntry(){
 }
 async function openTalentPreview(t,list){
   TALENT_PREVIEW=true;
-  history.replaceState(null,'',`booking.html?preview=${encodeURIComponent(t.id)}`);
+  try{history.replaceState(null,'',`booking.html?preview=${encodeURIComponent(t.id)}`)}catch(e){}
   await renderTalentDashboard(t,t.email||'');
   const root=el('talentPortal');
   root.classList.add('is-preview');

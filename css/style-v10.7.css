@@ -9677,3 +9677,8 @@ body.admin-body .dashboard-week-strip>span b{font-size:22px!important}
  .preview-bar a{margin-left:0}
  .confirm-every-pending{width:100%}
 }
+.confirm-every-pending,.admin96-action-items .confirm-every-pending{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:12px 22px;border:0;border-radius:12px;background:linear-gradient(135deg,#ecd29a,#c9a45a);color:#17130b!important;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 8px 22px rgba(201,164,90,.28)}
+.confirm-every-pending:hover{filter:brightness(1.06)}
+.confirm-every-pending:disabled{opacity:.6;cursor:wait}
+.dash-pending-row{flex-direction:column}
+.dash-pending-row .confirm-every-pending{width:100%}
