@@ -9603,3 +9603,77 @@ body.admin-body .dashboard-week-strip>span b{font-size:22px!important}
 .admin-payroll-history-summary span{display:block;font-size:14px;color:var(--muted,#a9a2a1);margin-bottom:7px}.admin-payroll-history-summary strong{font-size:30px;font-weight:650;letter-spacing:-.02em}.admin-payroll-history-summary small{margin-left:7px;color:var(--muted,#a9a2a1);font-size:13px}
 .admin-payroll-history-page{max-width:980px}.admin-payroll-slip-wrap{position:relative;margin-bottom:18px}.admin-payroll-visibility{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 6px 8px;font-size:13px;letter-spacing:.02em}.admin-payroll-visibility span{font-weight:700}.admin-payroll-slip-wrap.is-published .admin-payroll-visibility span{color:#d9c09f}.admin-payroll-slip-wrap.is-draft .admin-payroll-visibility span{color:#b9a7a2}.admin-payroll-visibility small{color:var(--muted,#a9a2a1)}
 @media(max-width:720px){.admin-payroll-history-summary{grid-template-columns:1fr;gap:10px}.admin-payroll-history-summary>div{padding:15px 16px}.admin-payroll-history-summary strong{font-size:26px}.admin-payroll-visibility{align-items:flex-start;flex-direction:column;gap:3px;padding-bottom:7px}.admin-payroll-history-page{max-width:none}}
+
+/* ===== V10.60 人性化優化 ===== */
+/* 經紀預覽公關專區 */
+.preview-bar{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 auto 16px;max-width:1180px;padding:12px 16px;border:1px solid rgba(223,193,122,.45);border-radius:14px;background:rgba(20,17,12,.94);backdrop-filter:blur(8px);color:#f4eee3;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.preview-bar b{color:#dfc17a}
+.preview-bar select{flex:0 1 200px;padding:8px 10px;border-radius:10px;border:1px solid rgba(223,193,122,.35);background:#111116;color:#f4eee3}
+.preview-bar a{margin-left:auto;padding:8px 14px;border-radius:999px;border:1px solid rgba(223,193,122,.45);color:#dfc17a;text-decoration:none;white-space:nowrap}
+.preview-bar.flash{animation:previewFlash .7s ease}
+@keyframes previewFlash{0%,100%{box-shadow:0 10px 30px rgba(0,0,0,.35)}40%{box-shadow:0 0 0 3px rgba(229,182,185,.75)}}
+#talentPortal.is-preview .member-logout,#talentPortal.is-preview .talent-self-status-btn{cursor:not-allowed;opacity:.65}
+.preview-picker{max-width:1100px;margin:0 auto}
+.preview-picker-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}
+.preview-picker-head h1{margin:6px 0 8px}
+.preview-picker-head p{color:#b9b4ac;max-width:620px;line-height:1.7}
+.preview-search,.talent-grid-tools input{width:100%;max-width:360px;padding:11px 14px;border-radius:12px;border:1px solid rgba(223,193,122,.25);background:#111116;color:#f4eee3;font-size:15px}
+.preview-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:16px}
+.preview-pick{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;border:1px solid rgba(223,193,122,.18);background:rgba(22,22,27,.86);color:#f4eee3;cursor:pointer;text-align:left;transition:border-color .2s,transform .2s}
+.preview-pick:hover{border-color:rgba(223,193,122,.6);transform:translateY(-2px)}
+.preview-pick .preview-pick-avatar{width:48px;height:64px;flex:0 0 48px;border-radius:10px;overflow:hidden}
+.preview-pick .preview-pick-avatar img{width:100%;height:100%;object-fit:cover}
+.preview-pick b{display:block;font-size:15px}.preview-pick small{color:#96939a}
+
+/* 報班表單 */
+.booking-quick-row{display:flex;gap:8px;margin:10px 0 4px}
+.date-chip.is-booked span{opacity:.55;border-style:dashed}
+.date-chip.is-booked small{color:#8bc99b}
+
+/* 後台：頂部「看公關專區」 */
+.admin-preview-link,.dash-quick-link{display:inline-flex;align-items:center;gap:5px;height:38px;padding:0 12px;border:1px solid #3a3226;border-radius:8px;background:#0c1117;color:#d3a94d;text-decoration:none;font-size:13px}
+.admin-preview-link span{color:#e8dcc4;font-size:12px}
+.dash-quick-link{height:auto;padding:10px 16px;border-radius:999px}
+
+/* 總覽：全部公關確認 */
+.dash-pending-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
+.dash-pending-row .dash-go{flex:1 1 260px}
+.confirm-every-pending{white-space:nowrap;padding:12px 20px;font-size:15px}
+.compact-title{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+
+/* 公關管理卡片 */
+.talent-grid-title{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.talent-grid-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.talent-person-card.is-clickable{cursor:pointer;transition:border-color .2s,transform .2s}
+.talent-person-card.is-clickable:hover{transform:translateY(-2px);border-color:rgba(223,193,122,.55)}
+.talent-card-glance{display:flex;justify-content:space-between;gap:8px;padding:10px 14px;font-size:13px;color:#b9b4ac;border-top:1px solid rgba(255,255,255,.06)}
+.talent-card-glance span:last-child{color:#dfc17a}
+.good{color:#8bc99b!important}.mid{color:#e3c27a!important}.bad{color:#d68f92!important}
+
+/* 個人履歷：直接顯示近期班表與出勤 */
+.profile-inline-card{margin:18px 0;padding:20px;border:1px solid rgba(223,193,122,.16);border-radius:18px;background:rgba(16,16,19,.92)}
+.profile-inline-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:14px}
+.profile-inline-head h3{margin:2px 0 0}
+.profile-inline-head small{color:#96939a}
+.profile-recent-list{display:flex;flex-direction:column;gap:8px}
+.profile-recent-row{display:grid;grid-template-columns:120px 1fr 120px;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}
+.profile-recent-row.is-today{border-color:rgba(223,193,122,.55);background:rgba(223,193,122,.07)}
+.profile-recent-row.is-past{opacity:.72}
+.profile-recent-row .d i{margin-left:6px;padding:2px 7px;border-radius:999px;background:#dfc17a;color:#111;font-style:normal;font-size:11px}
+.profile-recent-row .v small{display:block;color:#96939a;font-size:12px;margin-top:2px}
+.profile-month-strip{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin:14px 0}
+.profile-month-strip div{padding:8px 2px;text-align:center;border-radius:10px;background:rgba(255,255,255,.03)}
+.profile-month-strip div.current{outline:1px solid rgba(223,193,122,.55)}
+.profile-month-strip div.future{opacity:.35}
+.profile-month-strip small{display:block;color:#96939a;font-size:11px}
+.profile-month-strip b{font-size:13px}
+.profile-leave-title{margin:16px 0 8px;font-size:15px}
+.attendance-year-picker.inline{margin:0;display:flex;gap:6px}
+#profileAttendance .attendance-leave-table .head,#profileAttendance .attendance-leave-table>div{grid-template-columns:110px 110px 1fr}
+@media(max-width:720px){
+ .profile-recent-row{grid-template-columns:1fr auto;}
+ .profile-recent-row .v{grid-column:1/-1;order:3}
+ .profile-month-strip{grid-template-columns:repeat(6,1fr)}
+ .preview-bar a{margin-left:0}
+ .confirm-every-pending{width:100%}
+}

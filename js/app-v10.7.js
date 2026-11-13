@@ -51,7 +51,7 @@ async function talentPortalInit(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){renderTalentAuth();return}
   const {data:admin}=await sb.from('admin_users').select('user_id').eq('user_id',session.user.id).maybeSingle();
-  if(admin){el('talentPortal').innerHTML=`<div class="portal-shell"><h1>這是公關專區</h1><p>你目前登入的是管理員帳號。</p><a class="btn btn-primary" href="admin.html">前往經紀後台</a><button class="btn btn-outline" id="talentLogout">登出</button></div>`;el('talentLogout').onclick=async()=>{await sb.auth.signOut();location.reload()};return}
+  if(admin){await renderAdminPreviewEntry();return}
   let {data:profile,error}=await sb.from('talents').select('*').eq('user_id',session.user.id).maybeSingle();
   if(error||!profile){renderNoProfile(session.user.email);return}
   if(profile.status==='paused'&&profile.paused_until&&profile.paused_until<=isoDay()){
@@ -61,6 +61,53 @@ async function talentPortalInit(){
   await renderTalentDashboard(profile,session.user.email);
 }
 talentPortalInit();
+
+// ---------- 經紀預覽公關專區（不用切換帳號） ----------
+let TALENT_PREVIEW=false;
+async function renderAdminPreviewEntry(){
+  const {data:talents,error}=await sb.from('talents').select('*').neq('status','left').order('nickname');
+  if(error){el('talentPortal').innerHTML='<div class="portal-shell"><h1>無法讀取公關名單</h1><p>請重新整理再試一次。</p><a class="btn btn-primary" href="admin.html">回經紀後台</a></div>';return}
+  const list=talents||[];
+  const wanted=new URLSearchParams(location.search).get('preview');
+  const target=list.find(t=>t.id===wanted);
+  if(target){await openTalentPreview(target,list);return}
+  const statusName={active:'上卡中',paused:'休檔中',new:'待審核'};
+  el('talentPortal').innerHTML=`<div class="portal-shell preview-picker">
+    <div class="preview-picker-head">
+      <div><p class="eyebrow">AGENT PREVIEW</p><h1>用公關的角度看專區</h1><p>你登入的是經紀帳號，不用切換帳號。點一位公關，就能看到她登入後看到的畫面（只能看、不會改到資料）。</p></div>
+      <a class="btn btn-outline" href="admin.html">← 回經紀後台</a>
+    </div>
+    <input class="preview-search" type="search" placeholder="搜尋公關暱稱…" autocomplete="off">
+    <div class="preview-picker-grid">${list.map(t=>`<button class="preview-pick" data-id="${t.id}" data-name="${esc((t.nickname||'').toLowerCase())}">${talentAvatarMarkup(t,'preview-pick-avatar',true)}<span><b>${esc(t.nickname||'未設定暱稱')}</b><small>${esc(statusName[t.status]||t.status||'')}</small></span></button>`).join('')||'<p class="empty">目前沒有公關資料。</p>'}</div>
+  </div>`;
+  document.querySelectorAll('.preview-pick').forEach(b=>b.onclick=()=>{const t=list.find(x=>x.id===b.dataset.id);if(t)openTalentPreview(t,list)});
+  const q=document.querySelector('.preview-search');
+  if(q)q.oninput=()=>{const v=q.value.trim().toLowerCase();document.querySelectorAll('.preview-pick').forEach(b=>b.style.display=!v||b.dataset.name.includes(v)?'':'none')};
+}
+async function openTalentPreview(t,list){
+  TALENT_PREVIEW=true;
+  history.replaceState(null,'',`booking.html?preview=${encodeURIComponent(t.id)}`);
+  await renderTalentDashboard(t,t.email||'');
+  const root=el('talentPortal');
+  root.classList.add('is-preview');
+  const bar=document.createElement('div');
+  bar.className='preview-bar';
+  bar.innerHTML=`<span>👀 經紀預覽中：<b>${esc(t.nickname||'')}</b>｜只能看、不會改到資料</span><select class="preview-switch" aria-label="切換公關">${list.map(x=>`<option value="${x.id}" ${x.id===t.id?'selected':''}>${esc(x.nickname||'未設定暱稱')}</option>`).join('')}</select><a href="admin.html">回經紀後台</a>`;
+  root.prepend(bar);
+  bar.querySelector('.preview-switch').onchange=e=>{const n=list.find(x=>x.id===e.target.value);if(n)openTalentPreview(n,list)};
+  root.querySelectorAll('.portal-shell input,.portal-shell select,.portal-shell textarea').forEach(i=>{if(!i.closest('.preview-bar'))i.disabled=true});
+}
+// 預覽模式：擋掉所有會寫入資料的操作，只保留切換分頁與預覽列
+['click','submit','change'].forEach(type=>document.addEventListener(type,e=>{
+  if(!TALENT_PREVIEW)return;
+  const t=e.target;
+  if(!t.closest||!t.closest('#talentPortal'))return;
+  if(t.closest('.preview-bar')||t.closest('.profile-tab')||t.closest('.payroll-slip-top')||t.closest('.payroll-history-toggle'))return;
+  if(type==='click'&&!t.closest('button,input,label,select,textarea,[role=button]'))return;
+  if(type==='click'&&t.closest('a[href]'))return;
+  e.preventDefault();e.stopImmediatePropagation();
+  if(type!=='change'){const tip=document.querySelector('.preview-bar');if(tip){tip.classList.remove('flash');void tip.offsetWidth;tip.classList.add('flash')}}
+},true));
 
 
 async function talentAuthRequest(payload){
@@ -119,7 +166,8 @@ function renderNoProfile(email){
 }
 async function renderTalentDashboard(p,email){
   const {data:venues}=await sb.from('venues').select('name').eq('is_active',true).order('name');
-  const {data:myBookings}=await sb.from('bookings').select('*').eq('user_id',p.user_id).order('booking_date',{ascending:true}).order('start_time');
+  const bookingQuery=sb.from('bookings').select('*');
+  const {data:myBookings}=await (p.user_id?bookingQuery.eq('user_id',p.user_id):bookingQuery.eq('talent_id',p.id)).order('booking_date',{ascending:true}).order('created_at');
   const normalizedStatus={active:'active',paused:'paused',new:'new',left:'left','合作中':'active','上卡中':'active','暫停':'paused','休檔中':'paused','待審核':'new','待經紀審核':'new','已離開':'left','已下卡':'left'}[p.status]||p.status;
   const approved=normalizedStatus==='active';
   const profileStatus={new:'待經紀審核',active:'上卡中',paused:'休檔中',left:'已下卡'}[normalizedStatus]||normalizedStatus;
@@ -135,13 +183,14 @@ async function renderTalentDashboard(p,email){
   const confirmedCount=weekRows.filter(x=>x.status==='confirmed').length;
   const pendingCount=weekRows.filter(x=>x.status==='pending').length;
   const nextBooking=rows.find(x=>x.booking_date>=today&&!['cancelled','rejected','leave'].includes(x.status));
-  const nextText=nextBooking?`${twDate(nextBooking.booking_date)} · ${esc(nextBooking.start_time?.slice(0,5)||'')}`:'尚無班表';
+  const nextText=nextBooking?`${twDate(nextBooking.booking_date)} · ${esc(nextBooking.venue||'')}`:'尚無班表';
   const taipeiHour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',hour:'2-digit',hour12:false}).format(new Date()));
   const timeGreeting=taipeiHour>=5&&taipeiHour<11?'早安':taipeiHour>=11&&taipeiHour<18?'午安':'晚安';
   const todayRows=rows.filter(x=>x.booking_date===today&&!['cancelled','rejected'].includes(x.status));
   const todayConfirmed=todayRows.filter(x=>x.status==='confirmed');
   const todayLeave=todayRows.filter(x=>x.status==='leave');
-  const todayStatusText=todayConfirmed.length?`今天 ${esc(todayConfirmed[0].start_time?.slice(0,5)||'')} 有班`:todayLeave.length?'今天已請假':'今天沒有排班';
+  const todayPending=todayRows.filter(x=>x.status==='pending');
+  const todayStatusText=todayConfirmed.length?`今天在 ${esc(todayConfirmed[0].venue||'店家')} 上班`:todayLeave.length?'今天已請假':todayPending.length?'今天有班，等經紀確認':'今天沒有排班';
   const memberPortrait=p.avatar_portrait_url||p.avatar_url||'';
   const memberCode=String(p.id||'').replace(/-/g,'').slice(0,8).toUpperCase()||'PRIVATE';
   const memberPortraitMarkup=memberPortrait
@@ -227,11 +276,8 @@ async function renderTalentDashboard(p,email){
       <button class="profile-tab" data-section="profile">
         <span>02</span><div><strong>個人資料 <i>◇</i></strong><small>聯絡方式 · 基本資料</small></div>
       </button>
-      <button class="profile-tab" data-section="payroll">
-        <span>03</span><div><strong>薪資單 <i>＄</i></strong><small>每週薪資 · 每日節數 · 扣款</small></div>
-      </button>
       <button class="profile-tab" data-section="hotelcards">
-        <span>04</span><div><strong>酒店上下卡紀錄 <i>⌁</i></strong><small>曾上卡店家 · 日期選填</small></div>
+        <span>03</span><div><strong>酒店上下卡紀錄 <i>⌁</i></strong><small>曾上卡店家 · 日期選填</small></div>
       </button>
     </nav>
 
@@ -244,7 +290,7 @@ async function renderTalentDashboard(p,email){
     <div id="talentScheduleSection" class="member-section">
       ${approved?`
       <div class="member-dashboard-grid member-booking-only">
-        <div class="member-booking-column">${bookingComposer(p,venues||[])}</div>
+        <div class="member-booking-column">${bookingComposer(p,venues||[],rows)}</div>
       </div>`:`<div class="approval-box member-pause-box"><strong>${normalizedStatus==='paused'?'目前休檔中':'帳號目前尚未開放報班'}</strong><p>${normalizedStatus==='paused'?'休檔期間暫停報班；切回「上卡中」後即可恢復。':'等待經紀審核通過後，就可以開始報班與查看公告。'}</p></div>`}
 
       <section class="my-schedule member-schedule-panel">
@@ -288,9 +334,6 @@ async function renderTalentDashboard(p,email){
     <div id="talentProfileSection" class="member-section" style="display:none">
       ${profileEditor(p,email)}
     </div>
-    <div id="talentPayrollSection" class="member-section" style="display:none">
-      <div class="member-loading-card">薪資單讀取中…</div>
-    </div>
     <div id="talentHotelCardsSection" class="member-section" style="display:none">
       <div class="member-loading-card">酒店上下卡紀錄讀取中…</div>
     </div>
@@ -301,11 +344,11 @@ async function renderTalentDashboard(p,email){
     document.querySelectorAll('.profile-tab').forEach(x=>x.classList.remove('active'));
     btn.classList.add('active');
     const section=btn.dataset.section;
-    ['Schedule','Profile','Payroll','HotelCards'].forEach(k=>{const node=el('talent'+k+'Section');if(node)node.style.display='none'});
-    const map={schedule:'talentScheduleSection',profile:'talentProfileSection',payroll:'talentPayrollSection',hotelcards:'talentHotelCardsSection'};
+    ['Schedule','Profile','HotelCards'].forEach(k=>{const node=el('talent'+k+'Section');if(node)node.style.display='none'});
+    const map={schedule:'talentScheduleSection',profile:'talentProfileSection',hotelcards:'talentHotelCardsSection'};
     if(el(map[section]))el(map[section]).style.display='block';
-    if(section==='payroll')await renderTalentPayroll(p);
     if(section==='hotelcards')await renderTalentHotelCards(p);
+    if(TALENT_PREVIEW)el('talentPortal').querySelectorAll('.portal-shell input,.portal-shell select,.portal-shell textarea').forEach(i=>{if(!i.closest('.preview-bar'))i.disabled=true});
   });
   if(approved){
     bindBookingComposer(p);
@@ -762,7 +805,10 @@ function bindProfileEditor(p){
   };
 }
 
-function bookingComposer(p,venues){
+function bookingComposer(p,venues,pastRows=[]){
+  const lastVenue=pastRows.slice().reverse().find(x=>x.venue&&!['cancelled','rejected'].includes(x.status))?.venue||'';
+  const venueNames=venues.map(v=>v.name);
+  const alreadyBooked=new Set(pastRows.filter(x=>['pending','confirmed','leave'].includes(x.status)).map(x=>x.booking_date));
   const now=new Date();
   now.setHours(12,0,0,0);
   const day=now.getDay(); // 0日 1一 ... 5五 6六
@@ -795,25 +841,32 @@ function bookingComposer(p,venues){
       <span>${range}</span>
     </div>
     <div class="weekly-booking-notice is-open">
-      ${showingNextWeek?'目前填寫下週班表｜可選擇下週一至週日。':'目前填寫本週班表｜整週星期一至星期日都可以選擇；星期五會自動切換成下週班表。'}
+      ① 點選要上班的日子　② 確認店家　③ 送出，就完成了 ♡
     </div>
     <form id="multiBookingForm">
-      <div class="date-grid weekly-date-grid">${dates.map(x=>`<label class="date-chip">
-        <input type="checkbox" name="dates" value="${x.iso}">
-        <span><b>${weekNames[x.date.getDay()]}</b><small>${twDate(x.iso)}</small></span>
-      </label>`).join('')}</div>
+      <div class="date-grid weekly-date-grid">${dates.map(x=>{const done=alreadyBooked.has(x.iso);return `<label class="date-chip ${done?'disabled is-booked':''}">
+        <input type="checkbox" name="dates" value="${x.iso}" ${done?'disabled':''}>
+        <span><b>${weekNames[x.date.getDay()]}</b><small>${done?'已報班 ✓':twDate(x.iso)}</small></span>
+      </label>`}).join('')}</div>
+      <div class="booking-quick-row"><button type="button" class="mini-btn pick-all-days">全選可報的日子</button><button type="button" class="mini-btn clear-days">清除</button></div>
       <div class="booking-fields booking-fields-simple">
-        <label>店家<select name="venue" required><option value="">請選擇</option>${venues.map(v=>`<option>${esc(v.name)}</option>`).join('')}<option>其他</option></select></label>
-        <label>上班時間<input type="time" name="start" required></label>
+        <label>店家<select name="venue" required><option value="">請選擇</option>${venueNames.map(n=>`<option ${n===lastVenue?'selected':''}>${esc(n)}</option>`).join('')}<option ${lastVenue&&!venueNames.includes(lastVenue)?'selected':''}>其他</option></select></label>
       </div>
-      <label>備註<textarea name="note" maxlength="500" placeholder="選填"></textarea></label>
+      <label>備註<textarea name="note" maxlength="500" placeholder="選填，例如：會晚一點到"></textarea></label>
       <button class="btn btn-primary" type="submit">送出${showingNextWeek?'下週':'本週'}班表</button>
       <p id="multiBookingStatus" class="form-status"></p>
     </form>
   </section>`;
 }
 function bindBookingComposer(p){
-  el('multiBookingForm').onsubmit=async e=>{
+  const form=el('multiBookingForm');if(!form)return;
+  const boxes=()=>[...form.querySelectorAll('input[name=dates]:not(:disabled)')];
+  const updateBtn=()=>{const n=boxes().filter(x=>x.checked).length,b=form.querySelector('button[type=submit]');if(b)b.textContent=n?`送出 ${n} 天班表`:'請先點選日子'};
+  form.querySelector('.pick-all-days')?.addEventListener('click',()=>{boxes().forEach(x=>x.checked=true);updateBtn()});
+  form.querySelector('.clear-days')?.addEventListener('click',()=>{boxes().forEach(x=>x.checked=false);updateBtn()});
+  form.addEventListener('change',e=>{if(e.target.name==='dates')updateBtn()});
+  updateBtn();
+  form.onsubmit=async e=>{
     e.preventDefault();const f=e.currentTarget,b=f.querySelector('button[type=submit]');const dates=[...f.querySelectorAll('input[name=dates]:checked')].map(x=>x.value);
     if(!dates.length){text('multiBookingStatus','⚠️ 請至少選擇一天。');return}
     b.disabled=true;text('multiBookingStatus',`檢查 ${dates.length} 天班表中…`);
@@ -823,7 +876,7 @@ function bindBookingComposer(p){
     const existed=new Set((existing||[]).map(v=>v.booking_date));
     const newDates=dates.filter(d=>!existed.has(d));
     if(!newDates.length){text('multiBookingStatus','⚠️ 選擇的日期都已經有班表或請假紀錄，沒有重複送出。');b.disabled=false;return}
-    const rows=newDates.map(d=>({user_id:p.user_id,talent_id:p.id,nickname:p.nickname,contact:p.contact||'',booking_date:d,venue:x.venue,start_time:x.start,note:x.note||null,status:'pending'}));
+    const rows=newDates.map(d=>({user_id:p.user_id,talent_id:p.id,nickname:p.nickname,contact:p.contact||'',booking_date:d,venue:x.venue,start_time:'22:00',note:x.note||null,status:'pending'}));
     const {error}=await sb.from('bookings').insert(rows);
     if(error){console.error(error);text('multiBookingStatus','❌ 送出失敗，請重新整理後再試。');b.disabled=false;return}
     const skipped=dates.length-newDates.length;
@@ -840,9 +893,9 @@ function renderMyBookings(rows){
     return `<article class="my-booking-row member-shift-card">
       <div class="member-shift-date"><strong>${md}</strong><small>${wd}</small></div>
       <div class="member-shift-info">
-        <span class="member-shift-venue">${esc(x.venue)}</span>
-        <strong>${esc(x.start_time?.slice(0,5)||'未填時間')}</strong>
-        <small>${x.note?esc(x.note):'無備註'}</small>
+        <strong class="member-shift-venue">${esc(x.venue)}</strong>
+        ${x.note?`<small>${esc(x.note)}</small>`:''}
+        ${x.status==='leave'&&x.leave_type?`<small>請假：${esc(x.leave_type)}</small>`:''}
       </div>
       <div class="my-booking-side">
         <span class="booking-badge ${esc(x.status)}">${esc(statusText[x.status]||x.status)}</span>
@@ -922,7 +975,6 @@ function renderAdminShell(email){
    ['schedule','班務中心','SCHEDULE CENTER','▦'],
    ['talents','公關管理','TALENT MANAGEMENT','♢'],
    ['applications','新人申請','APPLICATIONS','✦'],
-   ['payroll','薪資管理','WEEKLY PAYROLL','＄'],
    ['operations','綜合管理','OPERATIONS','◇']
  ];
  el('adminApp').innerHTML=`
@@ -943,6 +995,7 @@ function renderAdminShell(email){
        <div class="admin96-title"><span class="admin96-menu">☰</span><div><h1>經紀管理中心</h1><small>MANAGEMENT CONSOLE</small></div></div>
        <div class="admin96-tools">
          <div class="admin96-date"><span>◷</span><b>${new Date().toLocaleDateString('zh-TW')}</b><small>${new Date().toLocaleDateString('zh-TW',{weekday:'short'})}</small></div>
+         <a class="admin-preview-link" href="booking.html">👀 <span>看公關專區</span></a>
          <button id="refreshAll">⟳ <span>重新整理</span></button>
          <button id="logoutBtn">♙ <span>小刀 / 經紀</span></button>
        </div>
@@ -987,8 +1040,7 @@ function renderAdminTab(tab){
  if(['today','week','nextweek','pendingall'].includes(tab))return adminBookings(tab);
  if(tab==='applications')return adminApplications();
  if(tab==='talents')return adminTalents();
- if(tab==='sections')return adminPayroll();
- if(tab==='payroll')return adminPayroll();
+ if(tab==='sections'||tab==='payroll')return adminDashboard();
  if(tab==='operations')return adminOperations();
  if(tab==='hotelcards')return adminHotelCards();
  if(tab==='venues')return adminVenues();
@@ -1035,7 +1087,8 @@ function openLeaveModal(bookingId){
     if(error){console.error(error);text('leaveStatus','❌ 請假登記失敗');b.disabled=false;return}
     close();
     await refreshAdmin();
-    if(window.__adminBookingsTab)adminBookings(window.__adminBookingsTab);
+    if(window.__afterLeave){const f=window.__afterLeave;window.__afterLeave=null;f()}
+    else if(window.__adminBookingsTab)adminBookings(window.__adminBookingsTab);
   };
 }
 function talentBookingRows(talent){
@@ -1189,7 +1242,7 @@ function adminDashboard(){
  const weekLeave=weekRows.filter(x=>x.status==='leave');
  const weekPending=weekRows.filter(x=>x.status==='pending');
  const weekManual=weekRows.filter(x=>String(x.note||'').includes('經紀補登'));
- const nextRows=confirmed.slice().sort((a,b)=>String(a.start_time||'99:99').localeCompare(String(b.start_time||'99:99')) || String(a.nickname||'').localeCompare(String(b.nickname||''))); 
+ const nextRows=confirmed.slice().sort((a,b)=>String(a.venue||'').localeCompare(String(b.venue||'')) || String(a.nickname||'').localeCompare(String(b.nickname||''))); 
  const todoCount=pending.length+newApps.length+newTalents.length;
  activateAdminGroup('dashboard');
  el('panel').innerHTML=`
@@ -1198,7 +1251,7 @@ function adminDashboard(){
    <section class="admin96-card admin96-action-card admin-clean-priority">
     <div class="admin96-card-head"><h2>待辦事項</h2><small>${todoCount?'只顯示需要你處理的項目':'目前沒有待處理事項'}</small></div>
     ${todoCount?`<div class="admin96-action-items">
-      ${pending.length?`<button class="dash-go" data-tab="pendingall"><i class="gold">▣</i><span><b>待確認班表</b><small>${pending.length} 筆待確認</small></span><strong>${pending.length}</strong><em>處理 →</em></button>`:''}
+      ${pending.length?`<div class="dash-pending-row"><button class="dash-go" data-tab="pendingall"><i class="gold">▣</i><span><b>待確認班表</b><small>${pending.length} 筆待確認</small></span><strong>${pending.length}</strong><em>查看 →</em></button><button class="btn btn-primary confirm-every-pending" type="button">✓ 全部公關確認</button></div>`:''}
       ${newApps.length?`<button class="dash-go" data-tab="applications"><i class="rose">✦</i><span><b>新人申請</b><small>${newApps.length} 筆待處理</small></span><strong>${newApps.length}</strong><em>處理 →</em></button>`:''}
       ${newTalents.length?`<button class="dash-go" data-tab="talents"><i class="violet">♢</i><span><b>待經紀審核</b><small>${newTalents.length} 個帳號</small></span><strong>${newTalents.length}</strong><em>處理 →</em></button>`:''}
     </div>`:`<div class="dashboard-all-clear"><strong>✓ 今日待辦已清空</strong><span>目前沒有需要立即處理的項目。</span></div>`}
@@ -1211,8 +1264,8 @@ function adminDashboard(){
       <div><span>待確認</span><strong class="amber">${todayRows.filter(x=>x.status==='pending').length}</strong></div>
       <div><span>請假</span><strong class="red">${leave.length}</strong></div>
     </div>
-    ${nextRows.length?`<div class="dashboard-next"><small>今日上班</small>${nextRows.map(x=>`<span><b>${esc((x.start_time||'').slice(0,5)||'—')}</b><strong>${esc(x.nickname)}</strong><em>${esc(x.venue||'未填店家')}</em></span>`).join('')}</div>`:'<div class="dashboard-next empty"><span>今天目前沒有已確認班表</span></div>'}
-    ${leave.length?`<div class="admin-clean-leaves"><small>今日請假</small>${leave.slice(0,4).map(x=>`<span><b>${esc(x.nickname)}</b> · ${esc(x.leave_type||'未分類')}${x.leave_note?` · ${esc(x.leave_note)}`:''}</span>`).join('')}</div>`:''}
+    ${nextRows.length?`<div class="dashboard-next"><small>今日上班</small>${nextRows.map(x=>`<span><strong>${esc(x.nickname)}</strong><em>${esc(x.venue||'未填店家')}</em></span>`).join('')}</div>`:'<div class="dashboard-next empty"><span>今天目前沒有已確認班表</span></div>'}
+    ${leave.length?`<div class="admin-clean-leaves"><small>今日請假</small>${leave.map(x=>`<span><b>${esc(x.nickname)}</b> · ${esc(x.leave_type||'未分類')}${x.leave_note?` · ${esc(x.leave_note)}`:''}</span>`).join('')}</div>`:''}
    </section>
  </div>
  <section class="dashboard-week-strip">
@@ -1223,7 +1276,7 @@ function adminDashboard(){
    <div><small>QUICK ACTIONS</small><h3>快速操作</h3></div>
    <button data-quick="manual">＋ 補登班表</button>
    <button data-quick="talent">＋ 新增公關</button>
-   <button data-quick="payroll">＄ 建立薪資單</button>
+   <a class="dash-quick-link" href="booking.html">👀 看公關專區</a>
  </section>`;
  document.querySelectorAll('.dash-go').forEach(b=>b.onclick=()=>{
    const tab=b.dataset.tab;
@@ -1232,8 +1285,8 @@ function adminDashboard(){
    if(target)target.click(); else renderAdminTab(tab);
  });
  document.querySelector('[data-quick="manual"]')?.addEventListener('click',openManualBookingModal);
+ document.querySelector('.confirm-every-pending')?.addEventListener('click',e=>confirmAllPending(e.currentTarget,()=>adminDashboard()));
  document.querySelector('[data-quick="talent"]')?.addEventListener('click',()=>{activateAdminGroup('talents');adminTalents();setTimeout(()=>el('addTalent')?.click(),0)});
- document.querySelector('[data-quick="payroll"]')?.addEventListener('click',()=>{activateAdminGroup('payroll');adminPayroll()});
 }
 
 function openManualBookingModal(){
@@ -1258,7 +1311,7 @@ function openManualBookingModal(){
   modal.className='leave-modal-backdrop';
   modal.innerHTML=`<div class="leave-modal manual-booking-modal">
     <div class="leave-modal-head">
-      <div><p class="eyebrow">MANUAL BOOKING</p><h3>幫公關補登班表</h3><p class="panel-note">可一次複選星期一到星期日；選到的日期會使用相同店家、時間與備註，並直接列為「已確認」。</p></div>
+      <div><p class="eyebrow">MANUAL BOOKING</p><h3>幫公關補登班表</h3><p class="panel-note">可一次複選星期一到星期日；選到的日期會使用相同店家與備註，並直接列為「已確認」。</p></div>
       <button class="leave-close" type="button">×</button>
     </div>
     <form id="manualBookingForm" novalidate>
@@ -1288,9 +1341,6 @@ function openManualBookingModal(){
           ${activeVenues.map(v=>`<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('')}
           <option value="其他">其他</option>
         </select>
-      </label>
-      <label>上班時間
-        <input type="time" name="start_time" required>
       </label>
       <label>備註
         <textarea name="note" maxlength="500" placeholder="例如：經紀補登｜實際有上班">經紀補登</textarea>
@@ -1341,7 +1391,6 @@ function openManualBookingModal(){
     const x={
       talent_id:String(fd.get('talent_id')||'').trim(),
       venue:String(fd.get('venue')||'').trim(),
-      start_time:String(fd.get('start_time')||'').trim(),
       note:String(fd.get('note')||'').trim()
     };
     const dates=[...form.querySelectorAll('input[name="manual_dates"]:checked')].map(i=>i.value);
@@ -1349,7 +1398,6 @@ function openManualBookingModal(){
     if(!t){text('manualBookingStatus','⚠️ 請先選擇公關。'); form.querySelector('[name="talent_id"]')?.focus(); return}
     if(!dates.length){text('manualBookingStatus','⚠️ 請至少選擇一天。');return}
     if(!x.venue){text('manualBookingStatus','⚠️ 請選擇店家。'); form.querySelector('[name="venue"]')?.focus(); return}
-    if(!x.start_time){text('manualBookingStatus','⚠️ 請填寫上班時間。'); form.querySelector('[name="start_time"]')?.focus(); return}
 
     const existing=S.bookings.filter(b=>
       b.talent_id===t.id &&
@@ -1362,7 +1410,7 @@ function openManualBookingModal(){
     if(existingDates.size){
       const details=[...existingDates].sort().map(d=>{
         const rows=existing.filter(b=>b.booking_date===d);
-        return `${twDate(d)}：${rows.map(b=>`${b.start_time?.slice(0,5)||'未填時間'} ${b.venue||''}（${b.status==='leave'?'請假':b.status==='confirmed'?'已確認':'待確認'}）`).join('、')}`;
+        return `${twDate(d)}：${rows.map(b=>`${b.venue||''}（${b.status==='leave'?'請假':b.status==='confirmed'?'已確認':'待確認'}）`).join('、')}`;
       }).join('\n');
       if(!newDates.length){
         text('manualBookingStatus','⚠️ 所選日期都已經有班表或請假紀錄，沒有重複補登。');
@@ -1378,7 +1426,7 @@ function openManualBookingModal(){
       contact:t.contact||'-',
       booking_date:date,
       venue:x.venue,
-      start_time:x.start_time,
+      start_time:'22:00',
       shift:'自訂',
       note:x.note||'經紀補登',
       status:'confirmed',
@@ -1407,7 +1455,7 @@ function openManualBookingModal(){
 }
 
 function adminBookings(tab){
- window.__adminBookingsTab=tab;
+ window.__adminBookingsTab=tab;window.__afterLeave=null;
  const today=isoDay(),
  currentWeekStart=mondayOf(today),
  currentWeekEnd=addDaysIso(currentWeekStart,6),
@@ -1436,7 +1484,7 @@ function adminBookings(tab){
    const allDates=Array.from({length:7},(_,i)=>addDaysIso(weekStart,i));
    html=allDates.map(date=>{
      const dayRows=(byDate[date]||[]).sort((a,b)=>
-       String(a.start_time||'99:99').localeCompare(String(b.start_time||'99:99')) ||
+       String(a.venue||'').localeCompare(String(b.venue||'')) ||
        String(a.nickname||'').localeCompare(String(b.nickname||''))
      );
      const d=new Date(date+'T12:00:00');
@@ -1463,7 +1511,7 @@ function adminBookings(tab){
              ${talentAvatarMarkup(S.talents.find(t=>t.id===x.talent_id)||{nickname:x.nickname},'week-talent-avatar',true)}
              <div class="week-talent-main">
                <div class="week-talent-name"><strong>${esc(x.nickname)}</strong><span class="booking-badge ${esc(x.status)}">${esc(L[x.status]||x.status)}</span></div>
-               <p>${esc(x.venue||'未填店家')} <i>·</i> ${esc(x.start_time?.slice(0,5)||'未填時間')}</p>
+               <p>${esc(x.venue||'未填店家')}</p>
                ${x.note?`<small>${esc(x.note)}</small>`:''}
                ${x.status==='leave'?`<small class="leave-summary">請假：${esc(x.leave_type||'未分類')}｜${esc(x.leave_timing||'未分類')}${x.leave_note?`｜${esc(x.leave_note)}`:''}</small>`:''}
              </div>
@@ -1492,15 +1540,12 @@ function adminBookings(tab){
            <strong>${esc(g.nickname)}</strong>
            <small>${esc(g.contact||'未填聯絡方式')}｜${g.rows.length} 天｜已確認 ${confirmedCount}｜請假 ${leaveCount}｜待確認 ${pendingCount}</small>
          </div>
-         <div class="bulk-actions">
-           ${pendingCount?`<button class="mini-btn confirm-all" data-key="${esc(g.key)}">全部確認</button>`:''}
-         </div>
        </div>
        <div class="talent-booking-days">
          ${g.rows.map(x=>`<div class="record compact-record ${x.status==='leave'?'leave-record':''}">
            <div class="record-main">
-             <strong>${esc(x.booking_date)}｜${esc(x.venue)}</strong>
-             <small>上班 ${esc(x.start_time?.slice(0,5))}｜${esc(x.note||'無備註')}</small>
+             <strong>${twDate(x.booking_date)}｜${esc(x.venue)}</strong>
+             ${x.note?`<small>${esc(x.note)}</small>`:''}
              ${x.status==='leave'?`<small class="leave-summary">請假：${esc(x.leave_type||'未分類')}｜${esc(x.leave_timing||'未分類')}${x.leave_note?`｜${esc(x.leave_note)}`:''}</small>`:''}
            </div>
            <div class="booking-row-actions">
@@ -1515,7 +1560,8 @@ function adminBookings(tab){
  }
 
  activateAdminGroup('schedule');
- el('panel').innerHTML=`${scheduleCenterBar(tab)}<div class="admin-section-title compact-title"><div><h2>${title}</h2><span>${rows.length} 筆</span></div></div>${isWeekView?`<div class="week-schedule-note"><span>✦</span><p>${tab==='nextweek'?'提前查看公關已報的下週班表，方便安排人力與提早確認。':'依日期整理本週班表，直接看每天有哪些公關上班；漏登歷史班表可直接用上方「補登班表」。'}</p></div>${html}`:(rows.length?html:'<p class="empty">目前沒有班表。</p>')}
+ const pendingHere=rows.filter(x=>x.status==='pending').length;
+ el('panel').innerHTML=`${scheduleCenterBar(tab)}<div class="admin-section-title compact-title"><div><h2>${title}</h2><span>${rows.length} 筆</span></div>${tab==='pendingall'&&pendingHere?`<button class="btn btn-primary confirm-every-pending" type="button">✓ 全部公關確認（${pendingHere} 筆）</button>`:''}</div>${isWeekView?`<div class="week-schedule-note"><span>✦</span><p>${tab==='nextweek'?'提前查看公關已報的下週班表，方便安排人力與提早確認。':'依日期整理本週班表，直接看每天有哪些公關上班；漏登歷史班表可直接用上方「補登班表」。'}</p></div>${html}`:(rows.length?html:'<p class="empty">目前沒有班表。</p>')}
  <div id="leaveModalHost"></div>
  <div id="manualBookingHost"></div>`;
  bindScheduleCenterBar();
@@ -1545,23 +1591,18 @@ function adminBookings(tab){
    adminBookings(window.__adminBookingsTab||tab||'today');
  });
 
- document.querySelectorAll('.confirm-all').forEach(btn=>btn.onclick=async()=>{
-   const g=groups[btn.dataset.key];
-   if(!g)return;
-   const ids=g.rows.filter(x=>x.status==='pending').map(x=>x.id);
-   if(!ids.length)return;
-   if(!confirm(`確定要一次確認 ${g.nickname} 的 ${ids.length} 天班表嗎？`))return;
-   btn.disabled=true;
-   const {error}=await sb.from('bookings').update({status:'confirmed'}).in('id',ids);
-   if(error){
-     alert('批次確認失敗，請稍後再試。');
-     console.error(error);
-     btn.disabled=false;
-     return;
-   }
-   await refreshAdmin();
-   adminBookings(window.__adminBookingsTab||tab||'pendingall');
- });
+ document.querySelector('.confirm-every-pending')?.addEventListener('click',e=>confirmAllPending(e.currentTarget,()=>adminBookings(window.__adminBookingsTab||tab||'pendingall')));
+}
+async function confirmAllPending(btn,after){
+ const ids=S.bookings.filter(x=>x.status==='pending').map(x=>x.id);
+ if(!ids.length)return;
+ const people=new Set(S.bookings.filter(x=>x.status==='pending').map(x=>x.talent_id||x.nickname)).size;
+ if(!confirm(`確定一次確認全部 ${people} 位公關、共 ${ids.length} 筆待確認班表嗎？`))return;
+ if(btn){btn.disabled=true;btn.textContent='確認中…'}
+ const {error}=await sb.from('bookings').update({status:'confirmed'}).in('id',ids).eq('status','pending');
+ if(error){console.error(error);alert('確認失敗，請稍後再試。');if(btn){btn.disabled=false;btn.textContent='✓ 全部公關確認'}return}
+ await refreshAdmin();
+ if(after)after();
 }
 function adminApplications(){
  const L={new:'待聯絡',contacted:'已聯絡',declined:'不聯絡'};
@@ -1678,7 +1719,7 @@ function adminTalents(){
  const leftTalents=S.talents.filter(x=>x.status==='left');
 
  const card=x=>`
-   <article class="talent-person-card">
+   <article class="talent-person-card is-clickable" data-open-profile="${x.id}" tabindex="0" title="點一下看完整履歷">
      <div class="talent-person-photo">
        ${talentAvatarMarkup(x,'talent-card-avatar')}
        <span class="talent-card-status status-${esc(x.status||'')}">${esc(({active:'上卡中',new:'待審核',paused:'休檔中',left:'已下卡'})[x.status]||x.status||'未設定')}</span>
@@ -1692,11 +1733,7 @@ function adminTalents(){
        <small>${esc(x.contact||x.email||'未填聯絡方式')}</small>
        ${x.status==='paused'&&x.paused_until?`<small class="pause-until">休檔至 ${esc(x.paused_until)}</small>`:''}
      </div>
-     <div class="talent-card-actions">
-       <button class="mini-btn talent-profile-view" data-id="${x.id}">完整資料</button>
-       <button class="mini-btn talent-attendance" data-id="${x.id}">穩定度</button>
-       <button class="mini-btn view-14" data-id="${x.id}">近14天</button>
-     </div>
+     ${(()=>{const a=calcTalentAttendance(x);return `<div class="talent-card-glance"><span>本月出勤 <b class="${a.scheduled?(a.rate<50?'bad':a.rate<80?'mid':'good'):''}">${a.scheduled?a.rate+'%':'—'}</b></span><span>查看履歷 →</span></div>`})()}
      <select class="status-select ts talent-card-select" data-id="${x.id}">
        ${[['active','上卡中'],['new','待經紀審核'],['paused','休檔中'],['left','已下卡']].map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}
      </select>
@@ -1718,8 +1755,8 @@ function adminTalents(){
 
  el('panel').innerHTML=`
  <div class="admin-section-title talent-grid-title">
-   <div><h2>公關管理</h2><p class="panel-note">上卡中／休檔中公關顯示在主要名單；已下卡會移到下方獨立區域。</p></div>
-   <button class="mini-btn" id="addTalent">＋ 新增未綁定公關</button>
+   <div><h2>公關管理</h2><p class="panel-note">點公關卡片就能看完整履歷、近期班表和出勤；右下角可以直接改狀態。</p></div>
+   <div class="talent-grid-tools"><input type="search" id="talentSearch" placeholder="搜尋暱稱…" autocomplete="off"><button class="mini-btn" id="addTalent">＋ 新增公關</button></div>
  </div>
 
  <div class="talent-card-grid">
@@ -1737,9 +1774,13 @@ function adminTalents(){
 
  <div id="inlineForm"></div>`;
 
- document.querySelectorAll('.talent-profile-view').forEach(b=>b.onclick=()=>renderTalentProfileAdmin(b.dataset.id));
- document.querySelectorAll('.talent-attendance').forEach(b=>b.onclick=()=>renderTalentAttendance(b.dataset.id));
- document.querySelectorAll('.view-14').forEach(b=>b.onclick=()=>renderTalent14Days(b.dataset.id));
+ document.querySelectorAll('[data-open-profile]').forEach(card=>{
+   const open=e=>{if(e.target.closest('select,option'))return;renderTalentProfileAdmin(card.dataset.openProfile)};
+   card.addEventListener('click',open);
+   card.addEventListener('keydown',e=>{if(e.key==='Enter')open(e)});
+ });
+ const ts=el('talentSearch');
+ if(ts)ts.oninput=()=>{const v=ts.value.trim().toLowerCase();document.querySelectorAll('.talent-person-card').forEach(c=>{const n=c.querySelector('h3')?.textContent.toLowerCase()||'';c.style.display=!v||n.includes(v)?'':'none'})};
  document.querySelectorAll('.ts').forEach(s=>s.onchange=async()=>{
    const prev=S.talents.find(x=>String(x.id)===String(s.dataset.id))?.status;
    const ok=await updateTalentStatus(s.dataset.id,s.value);
@@ -1922,7 +1963,7 @@ function renderTalentProfileAdmin(talentId){
        <div class="resume-mini-stats">
          <div><span>年齡</span><b>${esc(ageFromBirthday(t.birthday))}</b></div>
          <div><span>身高</span><b>${t.height_cm?esc(t.height_cm)+' cm':'—'}</b></div>
-         <div><span>穩定度</span><b>${a.scheduled?a.rate+'%':'—'}</b></div>
+         <div><span>本月出勤</span><b>${a.scheduled?a.rate+'%':'—'}</b></div>
        </div>
      </div>
 
@@ -1963,18 +2004,15 @@ function renderTalentProfileAdmin(talentId){
      </section>
 
      <div class="profile-hub">
-       <button class="mini-btn profile-bookings" data-id="${t.id}">近期班表</button>
-       <button class="mini-btn profile-attendance" data-id="${t.id}">出勤／請假分析</button>
-       <button class="mini-btn profile-payroll" data-id="${t.id}">薪資紀錄</button>
-       <button class="mini-btn profile-trend" data-id="${t.id}">每週節數趨勢</button>
+       <a class="mini-btn" href="booking.html?preview=${encodeURIComponent(t.id)}">👀 用她的角度看公關專區</a>
        <button class="mini-btn profile-hotels" data-id="${t.id}">曾上卡店家</button>
      </div>
    </div>
- </section>`;
- document.querySelector('.profile-bookings')?.addEventListener('click',()=>renderTalent14Days(t.id));
- document.querySelector('.profile-attendance')?.addEventListener('click',()=>renderTalentAttendance(t.id));
- document.querySelector('.profile-payroll')?.addEventListener('click',()=>renderTalentPayrollHistory(t.id));
- document.querySelector('.profile-trend')?.addEventListener('click',()=>renderTalentSectionTrend(t.id));
+ </section>
+
+ <section class="attendance-card profile-inline-card" id="profileRecent">${profileRecentHtml(t)}</section>
+ <section class="profile-inline-card" id="profileAttendance">${profileAttendanceHtml(t)}</section>`;
+ bindProfileInline(t);
  document.querySelector('.profile-hotels')?.addEventListener('click',()=>adminHotelCards(t.id));
  document.querySelector('.copy-bank-account')?.addEventListener('click',async e=>{
    const btn=e.currentTarget,account=btn.dataset.bank||'';
@@ -1990,6 +2028,42 @@ function renderTalentProfileAdmin(talentId){
  document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
 }
 
+function profileRecentHtml(t){
+ const from=isoDay(-7),to=isoDay(13);
+ const L={pending:'待確認',confirmed:'已確認',leave:'請假',rejected:'未安排',cancelled:'已取消'};
+ const rows=talentBookingRows(t).filter(x=>x.booking_date>=from&&x.booking_date<=to&&x.status!=='cancelled').sort((a,b)=>a.booking_date.localeCompare(b.booking_date));
+ const today=isoDay();
+ return `<div class="profile-inline-head"><div><p class="eyebrow">RECENT SCHEDULE</p><h3>近期班表</h3></div><small>前 7 天 ～ 後 14 天｜${rows.length} 筆｜可直接改狀態</small></div>
+ ${rows.length?`<div class="profile-recent-list">${rows.map(x=>`<div class="profile-recent-row ${x.booking_date===today?'is-today':''} ${x.booking_date<today?'is-past':''}"><span class="d">${twDate(x.booking_date)}${x.booking_date===today?'<i>今天</i>':''}</span><span class="v">${esc(x.venue||'未填店家')}${x.status==='leave'?`<small>${esc(x.leave_type||'請假')}${x.leave_note?'｜'+esc(x.leave_note):''}</small>`:x.note?`<small>${esc(x.note)}</small>`:''}</span><select class="status-select profile-status" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>`:'<p class="empty">這段期間沒有班表。</p>'}`;
+}
+function profileAttendanceHtml(t,selectedYear){
+ const currentYear=new Date().getFullYear();
+ const year=Math.min(currentYear,Math.max(ATTENDANCE_START_YEAR,Number(selectedYear)||currentYear));
+ const currentKey=isoDay().slice(0,7);
+ const now=new Date();
+ const months=[];
+ for(let m=1;m<=12;m++){const key=`${year}-${String(m).padStart(2,'0')}`;const st=calcTalentMonthlyAttendance(t,key);st.isFuture=new Date(year,m-1,1)>new Date(now.getFullYear(),now.getMonth(),1);st.isCurrent=key===currentKey;months.push(st)}
+ const ys=calcTalentYearlyAttendance(t,year);
+ const leaves=ys.leaveRows.slice().sort((a,b)=>String(b.booking_date).localeCompare(String(a.booking_date)));
+ const years=attendanceYearKeys();
+ return `<div class="profile-inline-head"><div><p class="eyebrow">ATTENDANCE</p><h3>出勤／請假分析</h3></div>${years.length>1?`<div class="attendance-year-picker inline">${years.map(y=>`<button type="button" class="attendance-year-btn ${y===year?'active':''}" data-year="${y}">${y}</button>`).join('')}</div>`:`<small>${year} 年｜請假一律算缺勤</small>`}</div>
+ <div class="attendance-stats"><div><span>應出勤</span><strong>${ys.scheduled}</strong></div><div><span>實際出勤</span><strong>${ys.attended}</strong></div><div><span>缺勤／請假</span><strong>${ys.absent}</strong></div><div><span>${year===currentYear?'目前':'全年'}出勤率</span><strong>${ys.scheduled?ys.rate+'%':'—'}</strong></div></div>
+ <div class="profile-month-strip">${months.map(m=>`<div class="${m.isFuture?'future':''} ${m.isCurrent?'current':''}"><small>${Number(m.key.slice(5))}月</small><b class="${!m.isFuture&&m.scheduled?(m.rate<50?'bad':m.rate<80?'mid':'good'):''}">${m.isFuture?'·':m.scheduled?m.rate+'%':'—'}</b></div>`).join('')}</div>
+ <h4 class="profile-leave-title">請假紀錄（${leaves.length}）</h4>
+ ${leaves.length?`<div class="attendance-leave-table"><div class="head"><span>日期</span><span>假別</span><span>備註</span></div>${leaves.map(x=>`<div><span>${twDate(x.booking_date)}</span><span>${esc(x.leave_type||'未分類')}</span><span class="leave-note-cell">${esc(x.leave_note||'—')}</span></div>`).join('')}</div>`:'<p class="empty">這一年沒有請假紀錄 ✓</p>'}`;
+}
+function bindProfileInline(t){
+ document.querySelectorAll('#profileAttendance .attendance-year-btn').forEach(b=>b.onclick=()=>{el('profileAttendance').innerHTML=profileAttendanceHtml(t,Number(b.dataset.year));bindProfileInline(t)});
+ document.querySelectorAll('#profileRecent .profile-status').forEach(sel=>sel.onchange=async()=>{
+   const row=S.bookings.find(x=>x.id===sel.dataset.id);
+   if(sel.value==='leave'){window.__afterLeave=()=>renderTalentProfileAdmin(t.id);openLeaveModal(sel.dataset.id);sel.value=row?.status||'pending';return}
+   sel.disabled=true;
+   const {error}=await sb.from('bookings').update({status:sel.value,leave_type:null,leave_note:null,leave_at:null,leave_timing:null}).eq('id',sel.dataset.id);
+   if(error){alert('修改失敗，請稍後再試。');sel.disabled=false;if(row)sel.value=row.status;return}
+   await refreshAdmin();
+   renderTalentProfileAdmin(t.id);
+ });
+}
 function renderTalent14Days(talentId){
  const t=S.talents.find(x=>x.id===talentId);
  if(!t)return;
@@ -2001,7 +2075,7 @@ function renderTalent14Days(talentId){
 
  const L={pending:'待確認',confirmed:'已確認',leave:'請假',rejected:'未安排',cancelled:'已取消'};
  el('panel').innerHTML=`<div class="admin-section-title"><div><button class="back-talents">← 返回公關管理</button><h2>${esc(t.nickname)}｜近 14 天報班</h2><p class="panel-note">${esc(from)} ～ ${esc(to)}｜共 ${rows.length} 筆</p></div></div>
- ${rows.length?rows.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.booking_date)}｜${esc(x.venue)}</strong><small>上班 ${esc(x.start_time?.slice(0,5))}｜${esc(x.note||'無備註')}</small></div><div class="booking-row-actions"><select class="status-select t14-status" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select><button class="delete-booking t14-delete" data-id="${x.id}" data-date="${esc(x.booking_date)}">刪除</button></div></div>`).join(''):'<p class="empty">這位公關近 14 天沒有報班。</p>'}`;
+ ${rows.length?rows.map(x=>`<div class="record"><div class="record-main"><strong>${esc(x.booking_date)}｜${esc(x.venue)}</strong><small>${esc(x.note||'無備註')}</small></div><div class="booking-row-actions"><select class="status-select t14-status" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select><button class="delete-booking t14-delete" data-id="${x.id}" data-date="${esc(x.booking_date)}">刪除</button></div></div>`).join(''):'<p class="empty">這位公關近 14 天沒有報班。</p>'}`;
 
  document.querySelector('.back-talents').onclick=()=>renderAdminTab('talents');
  document.querySelectorAll('.t14-status').forEach(sel=>sel.onchange=async()=>{
