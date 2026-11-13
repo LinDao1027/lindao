@@ -998,6 +998,7 @@ function renderAdminShell(email){
    document.querySelectorAll('.admin96-nav .tab').forEach(x=>x.classList.remove('active'));
    b.classList.add('active');
    renderAdminTab(b.dataset.tab);
+   if(b.dataset.tab==='schedule')window.scrollTo(0,0);
  });
 }
 async function restoreExpiredPauses(){
@@ -1009,7 +1010,43 @@ async function restoreExpiredPauses(){
  }
  return true;
 }
+// ===== V13：網址記住頁面（返回鍵／重新整理不再回總覽）＋ 保持捲動位置 ＋ 小提示 =====
+let ADMIN_ROUTE=null,ADMIN_ROUTING=false,__keepScroll=null;
+function adminGroupOf(r){
+ if(!r)return 'dashboard';
+ if(r.startsWith('schedule/')||['today','week','nextweek','pendingall'].includes(r))return 'schedule';
+ if(r.startsWith('profile/'))return 'talents';
+ if(r==='attendance'||r.startsWith('attendance/')||['hotelcards','venues','announcements'].includes(r))return 'operations';
+ return r;
+}
+function setRoute(r){
+ if(!el('adminApp'))return;
+ if(ADMIN_ROUTING||ADMIN_ROUTE===null){ADMIN_ROUTE=r;try{history.replaceState(null,'','#'+r)}catch(e){}return}
+ if(r===ADMIN_ROUTE)return;
+ ADMIN_ROUTE=r;__keepScroll=null;
+ try{history.pushState(null,'','#'+r)}catch(e){}
+ window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+function renderRoute(r){
+ r=r||'dashboard';
+ const stats=el('stats');if(stats)stats.style.display=r==='dashboard'?'grid':'none';
+ activateAdminGroup(adminGroupOf(r));
+ if(r.startsWith('schedule/'))return adminBookings(r.slice(9));
+ if(r.startsWith('profile/')){const id=r.slice(8);if(S.talents.some(t=>t.id===id))return renderTalentProfileAdmin(id);return renderAdminTab('talents')}
+ if(r==='attendance')return renderAllAttendanceAnalysis();
+ if(r.startsWith('attendance/'))return renderTalentAttendance(r.slice(11));
+ return renderAdminTab(r);
+}
+window.addEventListener('popstate',()=>{if(!el('adminApp')||!S.talents)return;ADMIN_ROUTING=true;try{renderRoute(decodeURIComponent(location.hash.slice(1))||'dashboard')}finally{ADMIN_ROUTING=false}});
+function toast(msg,kind='ok'){
+ let host=document.querySelector('.ld-toast-host');
+ if(!host){host=document.createElement('div');host.className='ld-toast-host';host.setAttribute('aria-live','polite');document.body.appendChild(host)}
+ const t=document.createElement('div');t.className='ld-toast '+kind;t.textContent=msg;host.appendChild(t);
+ requestAnimationFrame(()=>t.classList.add('show'));
+ setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300)},2200);
+}
 async function refreshAdmin(){
+ const keep={y:window.scrollY,route:ADMIN_ROUTE};
  const [b,a,t,v,n,w]=await Promise.all([sb.from('bookings').select('*').order('booking_date'),sb.from('applications').select('*').order('created_at',{ascending:false}),sb.from('talents').select('*').order('created_at',{ascending:false}),sb.from('venues').select('*').order('name'),sb.from('announcements').select('*').order('created_at',{ascending:false}),sb.from('weekly_sections').select('*').order('week_start',{ascending:false})]);
  S={bookings:b.data||[],applications:a.data||[],talents:t.data||[],venues:v.data||[],announcements:n.data||[],weeklySections:w.data||[]};
  el('stats').innerHTML=`
@@ -1017,10 +1054,14 @@ async function refreshAdmin(){
  <div class="admin96-stat rose"><div><span>待確認報班</span><small>PENDING SCHEDULE</small><strong>${S.bookings.filter(x=>x.status==='pending').length}</strong></div><i>⌛</i></div>
  <div class="admin96-stat violet"><div><span>待審核帳號</span><small>PENDING APPROVAL</small><strong>${S.talents.filter(x=>x.status==='new'&&x.user_id).length}</strong></div><i>♟</i></div>
  <div class="admin96-stat blue"><div><span>上卡中公關</span><small>ACTIVE TALENTS</small><strong>${S.talents.filter(x=>x.status==='active').length}</strong></div><i>✪</i></div>`;
- renderAdminTab(document.querySelector('.tab.active')?.dataset.tab||'dashboard');
+ const first=ADMIN_ROUTE===null;
+ ADMIN_ROUTING=true;
+ try{renderRoute(first?(decodeURIComponent(location.hash.slice(1))||'dashboard'):ADMIN_ROUTE)}finally{ADMIN_ROUTING=false}
+ if(!first&&keep.route===ADMIN_ROUTE){__keepScroll=keep;setTimeout(()=>{if(__keepScroll===keep&&ADMIN_ROUTE===keep.route){const go=()=>window.scrollTo({top:keep.y,left:0,behavior:'instant'});go();requestAnimationFrame(go)}},0)}
 }
 function renderAdminTab(tab){
  const stats=el('stats'); if(stats)stats.style.display=tab==='dashboard'?'grid':'none';
+ if(!['schedule','today','week','nextweek','pendingall'].includes(tab))setRoute(tab);
  if(tab==='dashboard')return adminDashboard();
  if(tab==='schedule')return adminBookings('today');
  if(['today','week','nextweek','pendingall'].includes(tab))return adminBookings(tab);
@@ -1072,6 +1113,7 @@ function openLeaveModal(bookingId){
     }).eq('id',bookingId);
     if(error){console.error(error);text('leaveStatus','❌ 請假登記失敗');b.disabled=false;return}
     close();
+    toast('已登記請假');
     await refreshAdmin();
     if(window.__afterLeave){const f=window.__afterLeave;window.__afterLeave=null;f()}
     else if(window.__adminBookingsTab)adminBookings(window.__adminBookingsTab);
@@ -1146,6 +1188,7 @@ function attendanceTrendSvg(months){
   return `<div class="attendance-chart-wrap"><svg class="attendance-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="每月出勤率趨勢圖"><g class="grid">${grids}</g><path class="trend" d="${path}"/>${dots}</svg></div>`;
 }
 function renderTalentAttendance(talentId, selectedYear){
+  setRoute('attendance/'+talentId);
   const t=S.talents.find(x=>x.id===talentId);if(!t)return;
   const currentYear=new Date().getFullYear();
   const year=Math.min(currentYear,Math.max(ATTENDANCE_START_YEAR,Number(selectedYear)||currentYear));
@@ -1177,6 +1220,7 @@ function renderTalentAttendance(talentId, selectedYear){
   document.querySelectorAll('.attendance-year-btn').forEach(b=>b.onclick=()=>renderTalentAttendance(talentId,Number(b.dataset.year)));
 }
 function renderAllAttendanceAnalysis(){
+  setRoute('attendance');
   const key=isoDay().slice(0,7);
   const rows=S.talents.filter(t=>['active','paused'].includes(t.status)).map(t=>({t,a:calcTalentMonthlyAttendance(t,key)})).sort((x,y)=>(x.a.scheduled?x.a.rate:101)-(y.a.scheduled?y.a.rate:101));
   const withData=rows.filter(x=>x.a.scheduled>0), avg=withData.length?Math.round(withData.reduce((n,x)=>n+x.a.rate,0)/withData.length*10)/10:0;
@@ -1427,7 +1471,7 @@ function openManualBookingModal(){
       return;
     }
     const skipped=dates.length-newDates.length;
-    alert(`✅ 已替 ${t.nickname} 補登 ${newDates.length} 天${skipped?`，另有 ${skipped} 天已有紀錄所以跳過`:''}。`);
+    toast(`已替 ${t.nickname} 補登 ${newDates.length} 天${skipped?`（${skipped} 天已有紀錄，略過）`:''}`);
     close();
     await refreshAdmin();
     activateAdminGroup('schedule');
@@ -1440,7 +1484,20 @@ function openManualBookingModal(){
   });
 }
 
+function statusQuick(x){
+ const st=x.status;
+ const btn=(v,label,cls)=>`<button type="button" class="sq-btn ${cls} ${st===v?'is-on':''}" data-sq="${v}" ${st===v?'aria-pressed="true"':''}>${label}</button>`;
+ return `<div class="status-quick" role="group" aria-label="班表狀態">${btn('confirmed','✓ 確認','sq-ok')}${btn('leave','請假','sq-leave')}</div>`;
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest&&e.target.closest('.sq-btn');if(!b)return;
+ const row=b.closest('.week-talent-row,.record,.profile-recent-row');const sel=row&&row.querySelector('select.bs,select.profile-status');
+ if(!sel||sel.disabled)return;
+ if(sel.value===b.dataset.sq&&b.dataset.sq!=='leave')return;
+ sel.value=b.dataset.sq;sel.dispatchEvent(new Event('change',{bubbles:true}));
+});
 function adminBookings(tab){
+ setRoute('schedule/'+tab);
  window.__adminBookingsTab=tab;window.__afterLeave=null;
  const today=isoDay(),
  currentWeekStart=mondayOf(today),
@@ -1502,7 +1559,8 @@ function adminBookings(tab){
                ${x.status==='leave'?`<small class="leave-summary">請假：${esc(x.leave_type||'未分類')}｜${esc(x.leave_timing||'未分類')}${x.leave_note?`｜${esc(x.leave_note)}`:''}</small>`:''}
              </div>
              <div class="week-talent-actions">
-               <select class="status-select bs" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select>
+               ${statusQuick(x)}
+               <select class="status-select bs status-more" data-id="${x.id}" aria-label="其他狀態">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select>
                <button class="delete-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">刪除</button>
              </div>
            </article>`).join(''):`<div class="week-date-empty"><span>◇</span><p>這天目前沒有公關上班</p></div>`}
@@ -1535,8 +1593,9 @@ function adminBookings(tab){
              ${x.status==='leave'?`<small class="leave-summary">請假：${esc(x.leave_type||'未分類')}｜${esc(x.leave_timing||'未分類')}${x.leave_note?`｜${esc(x.leave_note)}`:''}</small>`:''}
            </div>
            <div class="booking-row-actions">
-             <select class="status-select bs" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select>
-             ${tab==='today'?`<button class="mini-btn leave-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">請假</button>`:''}
+             ${statusQuick(x)}
+             <select class="status-select bs status-more" data-id="${x.id}" aria-label="其他狀態">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select>
+             
              <button class="delete-booking" data-id="${x.id}" data-name="${esc(x.nickname)}" data-date="${esc(x.booking_date)}">刪除</button>
            </div>
          </div>`).join('')}
@@ -1562,6 +1621,7 @@ function adminBookings(tab){
    const {error}=await sb.from('bookings').update({status:sel.value,leave_type:null,leave_note:null,leave_at:null,leave_timing:null}).eq('id',sel.dataset.id);
    sel.disabled=false;
    if(error){console.error(error);alert('狀態更新失敗，請稍後再試。');const row=S.bookings.find(x=>x.id===sel.dataset.id);if(row)sel.value=row.status;return}
+   toast('已更新為「'+({pending:'待確認',confirmed:'已確認',rejected:'未安排',cancelled:'已取消'}[sel.value]||sel.value)+'」');
    await refreshAdmin();
    adminBookings(window.__adminBookingsTab||tab||'today');
  });
@@ -1929,6 +1989,7 @@ function renderAddTalentForm(){
 
 
 function renderTalentProfileAdmin(talentId){
+ setRoute('profile/'+talentId);
  const t=S.talents.find(x=>x.id===talentId);if(!t)return;
  const a=calcTalentAttendance(t);
  const statusLabel={active:'上卡中',paused:'休檔中',new:'待審核'}[t.status]||t.status;
@@ -2020,7 +2081,7 @@ function profileRecentHtml(t){
  const rows=talentBookingRows(t).filter(x=>x.booking_date>=from&&x.booking_date<=to&&x.status!=='cancelled').sort((a,b)=>a.booking_date.localeCompare(b.booking_date));
  const today=isoDay();
  return `<div class="profile-inline-head"><div><p class="eyebrow">RECENT SCHEDULE</p><h3>近期班表</h3></div><small>前 7 天 ～ 後 14 天｜${rows.length} 筆｜可直接改狀態</small></div>
- ${rows.length?`<div class="profile-recent-list">${rows.map(x=>`<div class="profile-recent-row ${x.booking_date===today?'is-today':''} ${x.booking_date<today?'is-past':''}"><span class="d">${twDate(x.booking_date)}${x.booking_date===today?'<i>今天</i>':''}</span><span class="v">${esc(x.venue||'未填店家')}${x.status==='leave'?`<small>${esc(x.leave_type||'請假')}${x.leave_note?'｜'+esc(x.leave_note):''}</small>`:x.note?`<small>${esc(x.note)}</small>`:''}</span><select class="status-select profile-status" data-id="${x.id}">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>`:'<p class="empty">這段期間沒有班表。</p>'}`;
+ ${rows.length?`<div class="profile-recent-list">${rows.map(x=>`<div class="profile-recent-row ${x.booking_date===today?'is-today':''} ${x.booking_date<today?'is-past':''}"><span class="d">${twDate(x.booking_date)}${x.booking_date===today?'<i>今天</i>':''}</span><span class="v">${esc(x.venue||'未填店家')}${x.status==='leave'?`<small>${esc(x.leave_type||'請假')}${x.leave_note?'｜'+esc(x.leave_note):''}</small>`:x.note?`<small>${esc(x.note)}</small>`:''}</span>${statusQuick(x)}<select class="status-select profile-status status-more" data-id="${x.id}" aria-label="其他狀態">${Object.entries(L).map(([v,l])=>`<option value="${v}" ${x.status===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>`:'<p class="empty">這段期間沒有班表。</p>'}`;
 }
 function profileAttendanceHtml(t,selectedYear){
  const currentYear=new Date().getFullYear();
@@ -2046,6 +2107,7 @@ function bindProfileInline(t){
    sel.disabled=true;
    const {error}=await sb.from('bookings').update({status:sel.value,leave_type:null,leave_note:null,leave_at:null,leave_timing:null}).eq('id',sel.dataset.id);
    if(error){alert('修改失敗，請稍後再試。');sel.disabled=false;if(row)sel.value=row.status;return}
+   toast('已更新為「'+({pending:'待確認',confirmed:'已確認',rejected:'未安排',cancelled:'已取消'}[sel.value]||sel.value)+'」');
    await refreshAdmin();
    renderTalentProfileAdmin(t.id);
  });
