@@ -11600,3 +11600,40 @@ html.dl .booking-badge.pending{background:#f7eedb!important;color:#7a5d22!import
 html.dl .booking-badge.leave,html.dl .booking-badge.cancelled,html.dl .booking-badge.rejected{background:#f6e4e4!important;color:#8a3b3b!important;border-color:rgba(138,59,59,.2)!important}
 html.dl .talent-card-status.status-paused,html.dl .resume-status.status-paused{background:#efe9f6!important;color:#5d4a7a!important}
 html.dl .good{color:#2f6b40!important}html.dl .mid{color:#8a6a2c!important}html.dl .bad{color:#9a3b3b!important}
+/* --- V12 細節修正 --- */
+html.dl body.admin-body .admin96-stats .admin96-stat{border:1px solid rgba(34,29,24,.07)!important;background:#fffdf9!important;background-image:none!important}
+html.dl body.admin-body .admin96-stats .admin96-stat strong{color:#221d18!important;-webkit-text-fill-color:#221d18!important}
+html.dl body.admin-body .admin96-stats .admin96-stat.rose strong{color:#8a3b3b!important;-webkit-text-fill-color:#8a3b3b!important}
+html.dl body.admin-body .admin96-stats .admin96-stat span{color:#3a332c!important}
+html.dl body.admin-body .admin96-stats .admin96-stat small{color:#8b8177!important}
+html.dl .empty{padding:36px 20px!important;text-align:center;border:1px dashed rgba(34,29,24,.15)!important;border-radius:18px;background:#fbf7f0!important;color:#6f665c!important;font-size:15px}
+html.dl .empty::before{content:"✦";display:block;margin-bottom:8px;color:#c9a45a;font-size:18px}
+/* 招募首頁 */
+html.dl .home-conversion-page h1 em,html.dl .home-conversion-page h2 em{color:#8a6a2c!important;-webkit-text-fill-color:#8a6a2c!important;background:none!important}
+html.dl .home-conversion-page h1,html.dl .home-conversion-page h2{color:#221d18!important;-webkit-text-fill-color:#221d18!important}
+html.dl .hero-public-login,html.dl .nav-cta.public-login{background:#fffdf9!important;background-image:none!important;border:1px solid rgba(34,29,24,.16)!important;box-shadow:none!important;color:#221d18!important}
+html.dl .hero-public-login *{color:#221d18!important;-webkit-text-fill-color:#221d18!important}
+html.dl .hero-public-login .login-crown{background:#1c1916!important;color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important}
+html.dl .cv-mobile-bar{background:rgba(255,253,249,.97)!important;border:1px solid rgba(34,29,24,.08)!important;box-shadow:0 10px 30px rgba(108,86,50,.14)!important}
+html.dl .cv-mobile-bar a{color:#3a332c!important}
+html.dl .cv-mobile-bar a.ask{background:#1c1916!important;background-image:none!important;color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important}
+html.dl .cv-work-flow>div,html.dl .cv-value-card,html.dl .cv-income-card,html.dl .cv-boundary,html.dl .cv-consult-strip,html.dl .cv-faq details,html.dl .cv-side-card{background:#fffdf9!important;background-image:none!important;border:1px solid rgba(34,29,24,.07)!important;box-shadow:0 10px 28px rgba(108,86,50,.07)!important}
+html.dl .cv-work-flow b,html.dl .cv-value-card b{color:#8a6a2c!important}
+/* 諮詢表單 */
+html.dl .apply107-hero h1,html.dl .apply107-hero h2{color:#221d18!important;-webkit-text-fill-color:#221d18!important}
+html.dl .apply107-hero h2 em{color:#8a6a2c!important;-webkit-text-fill-color:#8a6a2c!important}
+html.dl .apply107-glow{display:none!important}
+html.dl .apply107-form,html.dl #applyForm.form-card{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important;padding:0!important}
+html.dl #applyForm label{background:transparent!important;box-shadow:none!important;border:0!important;color:#3a332c!important}
+html.dl .apply107-form-wrap,html.dl .apply107-hero{background:#fffdf9!important;background-image:none!important;border:1px solid rgba(34,29,24,.07)!important;box-shadow:0 12px 32px rgba(108,86,50,.08)!important}
+html.dl .apply107-seal{opacity:.5}
+/* 班務中心：手機精簡列 */
+@media (max-width:760px){
+ html.dl body.admin-body .week-talent-row{display:grid!important;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 12px!important}
+ html.dl body.admin-body .week-talent-row .week-talent-avatar{width:44px!important;height:58px!important}
+ html.dl body.admin-body .week-talent-main p{font-size:13px!important;color:#6f665c!important;margin:2px 0 0!important}
+ html.dl body.admin-body .week-talent-actions{display:flex!important;flex-direction:column;gap:6px;align-items:stretch;width:auto!important}
+ html.dl body.admin-body .week-talent-actions select{width:96px!important;height:36px!important;padding:0 8px!important;font-size:13px!important}
+ html.dl body.admin-body .week-talent-actions .delete-booking{height:28px!important;padding:0 8px!important;font-size:12px!important;border-radius:8px!important}
+ html.dl body.admin-body .operations-hub>button{padding:16px!important;min-height:0!important}
+}
