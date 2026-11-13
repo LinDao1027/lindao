@@ -11725,3 +11725,10 @@ html.dl body footer span,html.dl body footer small{color:#6a5f54!important}
 html.dl body.form-body .apply107-submit small{color:#7d6729!important}
 html.dl body.form-body .apply107-submit strong{color:#221d18!important}
 html.dl .dl-foot{color:#6a5f54!important}
+/* 日期格：隱藏原生勾選框（整格就是按鈕） */
+html.dl .date-chip{position:relative}
+html.dl .date-chip input[type=checkbox]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;margin:0!important;pointer-events:none}
+html.dl #manualDateGrid .date-chip{margin:0!important}
+html.dl #manualDateGrid{gap:8px!important}
+@media (max-width:760px){html.dl #manualDateGrid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+html.dl #manualDateGrid .date-chip,html.dl .weekly-date-grid .date-chip{grid-column:auto!important}
