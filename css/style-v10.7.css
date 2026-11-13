@@ -11642,3 +11642,9 @@ html.dl .conversion-hero::after{background:linear-gradient(90deg,rgba(0,0,0,0),r
 html.dl body.admin-body:not(.admin-login-mode)>header.site-header{display:none!important}
 html.dl .text-btn,html.dl .admin96-card-head .text-btn{background:transparent!important;border:0!important;padding:4px 0!important;font-size:14px!important;font-weight:600;color:#8a6a2c!important;-webkit-text-fill-color:#8a6a2c!important;box-shadow:none!important}
 html.dl .text-btn:hover{text-decoration:underline}
+html.dl .talent-self-status-btn,html.dl .talent-self-status-btn *{text-shadow:none!important;filter:none!important}
+html.dl .talent-self-status-btn.status-live{color:#2f6b40!important}
+html.dl .talent-self-status-btn.status-pause{color:#8a3b3b!important}
+html.dl .talent-self-status-btn:not(.is-current){opacity:.45}
+html.dl .talent-status-dot{box-shadow:none!important}
+html.dl .vip-portrait-frame{border-color:rgba(201,164,90,.45)!important;box-shadow:0 14px 34px rgba(108,86,50,.14)!important;background:#fffdf9!important}
