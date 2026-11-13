@@ -9725,7 +9725,18 @@ body.admin-body .admin-home-head p,body.admin-body .panel-note{font-size:14px;li
   body.admin-body .admin96-tools button span{display:none}
   body.admin-body .admin-preview-link span{display:inline;font-size:12px}
   body.admin-body .admin96-content{padding:14px!important;width:100%!important;min-width:0!important;box-sizing:border-box}
-  body.admin-body .admin96-stats{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+  body.admin-body .admin96-stats:not([style*="none"]){display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+  /* 公關卡片：手機改成精簡橫列 */
+  body.admin-body .talent-card-grid{gap:10px!important}
+  body.admin-body .talent-person-card{display:grid!important;grid-template-columns:72px 1fr;grid-template-areas:"photo info" "photo glance" "select select";gap:4px 12px;padding:12px!important;min-height:0!important;align-items:start}
+  body.admin-body .talent-person-photo{grid-area:photo;width:72px!important;height:96px!important;min-height:0!important;margin:0!important;border-radius:12px;overflow:hidden;position:relative}
+  body.admin-body .talent-person-photo img,body.admin-body .talent-person-photo .talent-card-avatar{width:100%!important;height:100%!important;object-fit:cover;aspect-ratio:auto!important}
+  body.admin-body .talent-card-status{position:absolute!important;left:4px!important;right:auto!important;bottom:4px!important;top:auto!important;font-size:10px!important;padding:2px 6px!important}
+  body.admin-body .talent-person-info{grid-area:info;padding:0!important;min-width:0}
+  body.admin-body .talent-person-info h3{font-size:18px!important;margin:0!important}
+  body.admin-body .talent-person-info p,body.admin-body .talent-person-info small{font-size:12.5px!important;margin:2px 0 0!important}
+  body.admin-body .talent-card-glance{grid-area:glance;padding:4px 0 0!important;border:0!important;font-size:12.5px}
+  body.admin-body .talent-card-select{grid-area:select;width:100%!important;margin:6px 0 0!important}
   body.admin-body .admin96-stat{min-width:0!important;padding:14px!important}
   body.admin-body .admin96-stat strong{font-size:28px!important}
   body.admin-body .admin96-stat i{display:none}
