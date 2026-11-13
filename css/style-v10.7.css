@@ -12348,3 +12348,65 @@ html.dl body.admin-body .admin96-brand-card{background-image:none!important;back
  html.dl body.admin-body .profile-recent-row select.status-more{flex:0 0 104px;width:104px!important;margin:0!important}
 }
 html.dl body.admin-body .admin96-brand-card,html.dl body.admin-body .admin96-brand-card::before,html.dl body.admin-body .admin96-brand-card::after{background:#211d24!important;background-image:none!important}
+
+/* =====================================================================
+   V13b 暮光漸層：深色自然淡入淺色，取代硬邊的深色框
+   ===================================================================== */
+:root{--dusk-0:#1a161d;--dusk-1:#2a2128;--dusk-2:#4a3a3c;--dusk-3:#9a857a;--dusk-4:#e6dacb;--ivory:#f6f1e7}
+
+/* --- 經紀後台 --- */
+html.dl body.admin-body{background:linear-gradient(180deg,var(--dusk-0) 0,var(--dusk-1) 90px,var(--dusk-2) 170px,var(--dusk-3) 250px,var(--dusk-4) 330px,var(--ivory) 420px,var(--ivory) 100%)!important;background-attachment:scroll!important}
+html.dl body.admin-body .admin96-console,html.dl body.admin-body .admin96-main,html.dl body.admin-body .admin96-content,html.dl body.admin-body .admin-page,html.dl body.admin-body #adminApp{background:transparent!important;background-image:none!important}
+html.dl body.admin-body .admin96-topbar{background:transparent!important;background-image:none!important;border-bottom:1px solid rgba(255,255,255,.06)!important;box-shadow:none!important}
+html.dl body.admin-body .admin96-sidebar{background:linear-gradient(180deg,#1a161d 0%,#231d24 35%,#2f262b 70%,#3a2f31 100%)!important;border-right:0!important;box-shadow:12px 0 40px -18px rgba(26,22,29,.55)!important}
+html.dl body.admin-body .admin96-brand-card{background:rgba(255,255,255,.04)!important}
+/* 卡片浮在漸層上：更柔和的陰影 */
+html.dl body.admin-body .admin96-stat,html.dl body.admin-body .admin96-card,html.dl body.admin-body .admin-unified-head{box-shadow:0 18px 40px -16px rgba(26,22,29,.35),0 1px 0 rgba(255,255,255,.6) inset!important;border-color:rgba(255,255,255,.55)!important}
+/* 放在漸層上方的標題：用淺色字 */
+html.dl body.admin-body #panel>.admin-section-title:first-child h2,html.dl body.admin-body #panel>.admin-section-title:first-child .panel-note,html.dl body.admin-body #panel>.admin-section-title:first-child p,html.dl body.admin-body #panel>.admin-section-title:first-child span{color:#f6f1e7!important;-webkit-text-fill-color:#f6f1e7!important}
+html.dl body.admin-body #panel>.admin-section-title:first-child .back-talents,html.dl body.admin-body #panel>.admin-section-title:first-child button{color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important}
+html.dl body.admin-body #panel>.admin-section-title:first-child{border-bottom-color:rgba(255,255,255,.12)!important}
+html.dl body.admin-body #panel>.admin-section-title:first-child .panel-note{opacity:.8}
+@media (max-width:860px){
+ html.dl body.admin-body{background:linear-gradient(180deg,var(--dusk-0) 0,var(--dusk-1) 70px,var(--dusk-2) 140px,var(--dusk-3) 210px,var(--dusk-4) 290px,var(--ivory) 380px,var(--ivory) 100%)!important}
+ html.dl body.admin-body .admin96-topbar{background:linear-gradient(180deg,rgba(26,22,29,.96),rgba(26,22,29,.82))!important;backdrop-filter:blur(10px);border-bottom:0!important}
+ html.dl body.admin-body .admin96-sidebar{background:linear-gradient(180deg,rgba(42,33,40,.97),rgba(26,22,29,.99))!important;box-shadow:0 -10px 30px -12px rgba(26,22,29,.45)!important}
+}
+
+/* --- 公關專區 --- */
+html.dl body.portal-body{background:linear-gradient(180deg,var(--dusk-0) 0,var(--dusk-1) 240px,var(--dusk-2) 480px,var(--dusk-3) 640px,var(--dusk-4) 760px,var(--ivory) 880px,var(--ivory) 100%)!important}
+html.dl body.portal-body>header.site-header{background:transparent!important;background-image:none!important;box-shadow:none!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
+html.dl body.portal-body .portal-page,html.dl body.portal-body main{background:transparent!important}
+html.dl body.portal-body .member-command-card{box-shadow:0 30px 60px -24px rgba(0,0,0,.6),0 0 0 1px rgba(227,199,138,.16)!important}
+html.dl body.portal-body .member-nav .profile-tab{box-shadow:0 14px 30px -18px rgba(26,22,29,.4)!important}
+@media (max-width:860px){
+ html.dl body.portal-body{background:linear-gradient(180deg,var(--dusk-0) 0,var(--dusk-1) 300px,var(--dusk-2) 560px,var(--dusk-3) 700px,var(--dusk-4) 800px,var(--ivory) 900px,var(--ivory) 100%)!important}
+ html.dl body.portal-body .portal-shell .member-nav{background:linear-gradient(180deg,rgba(42,33,40,.96),rgba(26,22,29,.99))!important;border-top:0!important;box-shadow:0 -10px 30px -12px rgba(26,22,29,.45)!important}
+}
+html.dl body.portal-body.auth-daylight{background:#f6f1e7!important}
+html.dl body.portal-body footer,html.dl body.form-body footer,html.dl body.public-body footer{background:linear-gradient(180deg,var(--ivory) 0,#e9dfd2 30%,#3a2f31 100%)!important;border-top:0!important}
+html.dl body.portal-body footer *,html.dl body.form-body footer *,html.dl body.public-body footer *{color:#f1ebe0!important;-webkit-text-fill-color:#f1ebe0!important}
+
+/* --- 招募首頁：主視覺底部淡入內容 --- */
+html.dl body.public-body>header.site-header,html.dl body.form-body>header.site-header{background:linear-gradient(180deg,rgba(26,22,29,.92),rgba(26,22,29,.55))!important;backdrop-filter:blur(8px);border-bottom:0!important;box-shadow:none!important}
+html.dl body.public-body .conversion-hero{position:relative}
+html.dl body.public-body .conversion-hero::after{content:""!important;position:absolute!important;left:0;right:0;bottom:0;height:200px;background:linear-gradient(180deg,rgba(246,241,231,0),rgba(246,241,231,1))!important;pointer-events:none;z-index:0;display:block!important;border:0!important;opacity:1!important;width:auto!important;top:auto!important;transform:none!important}
+html.dl body.public-body .conversion-hero>*{position:relative;z-index:1}
+
+/* --- 諮詢表單：上方暮光、表單浮在漸層上 --- */
+html.dl body.form-body{background:linear-gradient(180deg,var(--dusk-0) 0,var(--dusk-1) 220px,var(--dusk-2) 380px,var(--dusk-3) 520px,var(--dusk-4) 640px,var(--ivory) 760px,var(--ivory) 100%)!important}
+html.dl body.form-body main{background:transparent!important}
+html.dl body.form-body .apply107-hero{background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02))!important;border:1px solid rgba(227,199,138,.18)!important;box-shadow:none!important}
+html.dl body.form-body .apply107-form-wrap{box-shadow:0 30px 60px -24px rgba(26,22,29,.45)!important}
+/* V13b 修正 */
+html.dl body.public-body .conversion-hero::after{display:none!important;content:none!important}
+html.dl body.public-body>header.site-header{background:#161318!important;backdrop-filter:none}
+html.dl body.public-body .conversion-hero+*,html.dl body.public-body #work{background:linear-gradient(180deg,#141116 0,#3b2f33 60px,#9a857a 130px,#e6dacb 190px,#f6f1e7 260px,#f6f1e7 100%)!important}
+html.dl body.public-body #work .cv-section-head{position:relative;z-index:1}
+html.dl body.admin-body .admin96-sidebar .admin96-brand-card{background:rgba(255,255,255,.04)!important;background-image:none!important;border:1px solid rgba(227,199,138,.16)!important}
+html.dl body.portal-body .member-command-card .vip-member-plaque,html.dl body.portal-body .member-command-card .vip-member-plaque div{border-color:rgba(227,199,138,.28)!important}
+html.dl body.public-body .conversion-hero+*,html.dl body.public-body #work{background:transparent!important;background-image:none!important;border-color:transparent!important;box-shadow:none!important}
+html.dl body.public-body #work{position:relative!important;z-index:0;overflow:visible!important}
+html.dl body.public-body #work::before{content:""!important;display:block!important;position:absolute!important;top:0!important;left:50%!important;width:100vw!important;height:260px!important;transform:translateX(-50%)!important;background:linear-gradient(180deg,#141116 0,#3b2f33 60px,#9a857a 130px,#e6dacb 190px,rgba(246,241,231,0) 260px)!important;z-index:-1!important;pointer-events:none;border:0!important;opacity:1!important;border-radius:0!important}
+html.dl body.public-body{overflow-x:hidden}
+html.dl body.public-body .conversion-hero{border-bottom:0!important;box-shadow:none!important}html.dl body.public-body #work{border-top:0!important}html.dl body.public-body .conversion-hero::before{border-bottom:0!important}
