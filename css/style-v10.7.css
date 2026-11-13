@@ -11639,3 +11639,6 @@ html.dl .apply107-seal{opacity:.5}
 }
 html.dl .conversion-hero{background:#f6f1e7!important;background-image:radial-gradient(circle at 82% 18%,rgba(227,199,138,.22),rgba(246,241,231,0) 42%)!important}
 html.dl .conversion-hero::after{background:linear-gradient(90deg,rgba(0,0,0,0),rgba(201,164,90,.35),rgba(0,0,0,0))!important}
+html.dl body.admin-body:not(.admin-login-mode)>header.site-header{display:none!important}
+html.dl .text-btn,html.dl .admin96-card-head .text-btn{background:transparent!important;border:0!important;padding:4px 0!important;font-size:14px!important;font-weight:600;color:#8a6a2c!important;-webkit-text-fill-color:#8a6a2c!important;box-shadow:none!important}
+html.dl .text-btn:hover{text-decoration:underline}
