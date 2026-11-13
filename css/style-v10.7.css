@@ -9789,5 +9789,5 @@ body.admin-body .admin-home-head p,body.admin-body .panel-note{font-size:14px;li
 }
 .apply107-seal b{font-size:42px!important;letter-spacing:0!important}
 #applyForm label{font-size:14px;color:var(--cg-ivory)}
-#applyForm label .opt,label .opt{display:inline-block!important;width:auto!important;min-height:0!important;height:auto!important;margin:0 0 0 6px!important;padding:1px 8px!important;background:none!important;box-shadow:none!important}
+#applyForm label .opt,label .opt{display:inline-block!important;width:auto!important;max-width:max-content!important;align-self:flex-start!important;justify-self:start!important;min-height:0!important;height:auto!important;margin:0 0 0 6px!important;padding:1px 8px!important;background:none!important;box-shadow:none!important}
 @media (max-width:760px){.cv-work{overflow:visible}.cv-work-flow{outline:0!important;box-shadow:none!important}}
