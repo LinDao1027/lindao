@@ -9833,3 +9833,4 @@ body.auth-daylight .daylight-auth .dl-card input:not([type=checkbox]),body.auth-
 body.auth-daylight .daylight-auth .dl-card input:focus{border-color:#c9a45a!important;box-shadow:0 0 0 3px rgba(201,164,90,.18)!important}
 body.auth-daylight .daylight-auth .dl-card input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px #fbf7f0 inset!important;-webkit-text-fill-color:#221d18!important}
 body.auth-daylight .daylight-auth .dl-card label{color:#3a332c!important}
+body.auth-daylight .daylight-auth .dl-card input::placeholder{color:#a39a8f!important;-webkit-text-fill-color:#a39a8f!important;opacity:1}
