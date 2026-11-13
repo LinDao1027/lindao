@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>加入我們｜林刀娛樂</title><link rel="stylesheet" href="css/style-v10.7.css?v=10.57">
+  <meta name="description" content="讓每一次工作，都有更好的安排。">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0c0c10">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="林刀娛樂">
+  <meta property="og:title" content="林刀娛樂｜LIN DAO ENTERTAINMENT">
+  <meta property="og:description" content="讓每一份選擇，都被好好對待。">
+  <meta property="og:image" content="/assets/lindao-social-preview.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="林刀娛樂 LIN DAO ENTERTAINMENT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="林刀娛樂｜LIN DAO ENTERTAINMENT">
+  <meta name="twitter:description" content="讓每一份選擇，都被好好對待。">
+  <meta name="twitter:image" content="/assets/lindao-social-preview.jpg">
+</head>
+<body class="form-body">
+<header class="site-header"><a class="brand" href="index.html"><span class="brand-mark"><img src="assets/lindao-emblem-transparent.png" alt=""></span><span class="brand-copy"><span>ENTERTAINMENT</span><b>林刀娛樂</b></span></a><nav><a href="index.html">首頁</a><a href="booking.html">公關報班</a></nav></header>
+<main class="apply107-page">
+  <section class="apply107-hero">
+    <div class="apply107-glow" aria-hidden="true"></div>
+    <div class="apply107-copy">
+      <p class="apply107-eyebrow"><span></span> PRIVATE WORK CONSULTATION <i>✦</i></p>
+      <h1>工作諮詢</h1>
+      <h2>妳可以先了解，<em>再決定。</em></h2>
+      <p>不確定工作內容、排班方式，或只是想知道自己適不適合都沒關係。可以匿名詢問，不需要提供真實姓名。</p>
+      <div class="apply107-trust"><span>✦ 一對一了解</span><span>✦ 隱私保護</span><span>✦ 無壓力諮詢</span></div>
+    </div>
+    <div class="apply107-seal" aria-hidden="true"><b>LD</b><small>PRIVATE<br>CONSULTATION</small></div>
+  </section>
+
+  <section class="apply107-form-wrap">
+    <div class="apply107-form-head">
+      <div><small>PRIVATE CONSULTATION</small><h3>匿名工作諮詢</h3></div>
+      <span><b>01</b> / 01</span>
+    </div>
+    <p class="apply107-form-desc">不需要填真實姓名；暱稱只是方便經紀回覆時稱呼妳。</p>
+    <form id="applyForm" class="form-card apply107-form">
+    <label>暱稱<input name="nickname" required maxlength="40"></label>
+    <label>生日<input type="date" name="birthday" required></label>
+    <label>年齡<input type="number" name="age" required min="18" max="99" readonly aria-readonly="true"><small class="field-helper">依生日自動計算，避免年齡與生日不一致。</small></label>
+    <label>居住地區<input name="area" required maxlength="40" placeholder="例如：台北／新北"></label>
+    <label>手機／LINE<input name="contact" required maxlength="80"></label>
+    <label>Instagram<input name="instagram" maxlength="100" placeholder="選填"></label>
+    <label>有沒有相關工作經驗<select name="experience" required><option value="">請選擇</option><option>沒有</option><option>有</option></select></label>
+    <label>可工作時間<input name="availability" maxlength="150" placeholder="例如：平日晚班、週末"></label>
+    <label>想了解的內容／補充說明<textarea name="note" maxlength="800" placeholder="選填"></textarea></label>
+    <label class="check"><input type="checkbox" required> 我確認已達適用工作的法定年齡，並同意經紀以聯絡及工作諮詢為目的使用以上資料。</label>
+    <div class="apply107-submit">
+      <div><small>READY WHEN YOU ARE</small><strong>確認資料後送出</strong></div>
+      <button class="btn btn-primary" type="submit">送出諮詢 <span>↗</span></button>
+    </div>
+    <p class="form-status" id="applyStatus"></p>
+  </form>
+  <div class="apply107-note"><i>✦</i><div><small>A LITTLE NOTE FOR YOU</small><strong>諮詢，不代表妳一定要工作。</strong><p>先把想知道的事情問清楚，了解工作方式與安排後，再決定適不適合自己。</p></div></div>
+  </section>
+</main>
+<footer><div><b>林刀娛樂</b><span>PROFESSIONAL MANAGEMENT</span></div><p>© 2026 林刀娛樂.</p></footer>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const birthday=document.querySelector('#applyForm input[name="birthday"]');
+  const age=document.querySelector('#applyForm input[name="age"]');
+  const sync=()=>{if(!birthday||!age)return;const v=birthday.value;if(!v){age.value='';return}const b=new Date(v+'T12:00:00+08:00');const now=new Date();const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));let n=Number(parts.year)-b.getUTCFullYear();const md=Number(parts.month)*100+Number(parts.day),bmd=(b.getUTCMonth()+1)*100+b.getUTCDate();if(md<bmd)n--;age.value=n>0?n:''};
+  birthday?.addEventListener('change',sync);sync();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/config.js"></script><script src="js/app-v10.7.js?v=10.58"></script></body></html>
