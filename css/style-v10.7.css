@@ -11648,3 +11648,11 @@ html.dl .talent-self-status-btn.status-pause{color:#8a3b3b!important}
 html.dl .talent-self-status-btn:not(.is-current){opacity:.45}
 html.dl .talent-status-dot{box-shadow:none!important}
 html.dl .vip-portrait-frame{border-color:rgba(201,164,90,.45)!important;box-shadow:0 14px 34px rgba(108,86,50,.14)!important;background:#fffdf9!important}
+@media (max-width:760px){
+ html.dl body.admin-body .week-date-talents .week-talent-row>*{grid-row:1!important}
+ html.dl body.admin-body .week-date-talents .week-talent-row>.week-talent-avatar,html.dl body.admin-body .week-date-talents .week-talent-row>:first-child{grid-column:1!important}
+ html.dl body.admin-body .week-date-talents .week-talent-row>.week-talent-main{grid-column:2!important;min-width:0}
+ html.dl body.admin-body .week-date-talents .week-talent-row>.week-talent-actions{grid-column:3!important;width:96px!important;margin:0!important}
+ html.dl body.admin-body .week-talent-actions .delete-booking{width:100%!important}
+ html.dl body.admin-body .week-talent-name .booking-badge{display:none!important}
+}
