@@ -9829,3 +9829,7 @@ body.auth-daylight main,body.auth-daylight .portal-page,body.auth-daylight .admi
 .dl-help{margin:18px 0 0;text-align:center;font-size:13px;color:#6f665c}
 .dl-foot{margin:auto 0 0;padding-top:28px;text-align:center;font-size:11px;letter-spacing:.12em;color:#7d7368}
 @media (min-width:900px){.daylight-auth{padding-top:72px}.dl-intro{margin-top:64px}}
+body.auth-daylight .daylight-auth .dl-card input:not([type=checkbox]),body.auth-daylight .daylight-auth .dl-card select{background:#fbf7f0!important;border:1px solid #e3d9c8!important;color:#221d18!important;-webkit-text-fill-color:#221d18;box-shadow:none!important;border-radius:12px!important;height:52px!important}
+body.auth-daylight .daylight-auth .dl-card input:focus{border-color:#c9a45a!important;box-shadow:0 0 0 3px rgba(201,164,90,.18)!important}
+body.auth-daylight .daylight-auth .dl-card input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px #fbf7f0 inset!important;-webkit-text-fill-color:#221d18!important}
+body.auth-daylight .daylight-auth .dl-card label{color:#3a332c!important}
