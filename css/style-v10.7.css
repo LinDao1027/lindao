@@ -11551,7 +11551,7 @@ html.dl .week-date-card.is-today,html.dl .profile-recent-row.is-today{border-col
 /* 卡片內次層（淺米色） */
 html.dl .member-glance,html.dl .profile-recent-row,html.dl .record,html.dl .week-talent-row,html.dl .admin96-ops>div,html.dl .application-field,html.dl .attendance-stats>div,html.dl .profile-month-strip>div,html.dl .weekly-booking-notice,html.dl .schedule-refresh-note,html.dl .resume-mini-stats>div,html.dl .talent-card-glance,html.dl .vip-member-plaque{background:#f8f3ea!important;background-image:none!important;border:1px solid rgba(34,29,24,.05)!important;box-shadow:none!important}
 /* --- 按鈕：主要 = 深色＋香檳金字 --- */
-html.dl .btn-primary,html.dl .confirm-every-pending,html.dl .admin-login-submit,html.dl .cv-primary,html.dl #multiBookingForm button[type=submit],html.dl #profileForm button[type=submit],html.dl .apply107-submit,html.dl #applyForm button[type=submit],html.dl .unified-manual-booking{
+html.dl .btn-primary,html.dl .confirm-every-pending,html.dl .admin-login-submit,html.dl .cv-primary,html.dl #multiBookingForm button[type=submit],html.dl #profileForm button[type=submit],html.dl #applyForm button[type=submit],html.dl .unified-manual-booking{
   background:#1c1916!important;background-image:none!important;color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important;border:0!important;box-shadow:0 8px 20px rgba(28,25,22,.16)!important;text-shadow:none!important}
 html.dl .btn-primary:hover,html.dl .confirm-every-pending:hover,html.dl .cv-primary:hover{box-shadow:0 12px 26px rgba(28,25,22,.24)!important;filter:none!important}
 /* 次要按鈕：白底細框 */
