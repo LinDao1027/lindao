@@ -11711,3 +11711,9 @@ html.dl body.public-body .cv-values::before,html.dl body.public-body .cv-values:
 html.dl body.public-body .cv-values{padding-top:0!important}
 /* 諮詢頁：手機隱藏角落印章 */
 @media (max-width:760px){html.dl body.form-body .apply107-seal{display:none!important}}
+html.dl body.portal-body .talent-self-status-btn,html.dl body.portal-body .talent-self-status-btn span:not(.talent-status-dot){font-size:15px!important;line-height:1.2!important;font-family:"Noto Sans TC",system-ui,sans-serif!important}
+html.dl body.portal-body .talent-self-status-btn{display:inline-flex!important;align-items:center;gap:8px}
+html.dl .manual-week-toolbar{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px!important}
+html.dl .manual-week-toolbar .manual-week-title{grid-column:1/-1;grid-row:1;text-align:center}
+html.dl .manual-week-toolbar .manual-week-actions{display:contents!important}
+html.dl .manual-week-toolbar .mini-btn{width:100%!important;min-width:0!important;padding:10px 6px!important;white-space:nowrap}
