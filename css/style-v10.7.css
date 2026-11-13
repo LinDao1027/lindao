@@ -11542,3 +11542,61 @@ html.dl{color-scheme:light}
 html.dl body{background:#f6f1e7!important;color:#221d18!important}
 html.dl .lux-motion-layer,html.dl .member-soft-orbit,html.dl .cv-orb,html.dl .cv-ring,html.dl .cv-star,html.dl .cv-watermark,html.dl .admin-login-ambient,html.dl .vip-portrait-shine,html.dl .member-command-sparkle,html.dl .lux-shine-line{display:none!important}
 html.dl ::selection{background:rgba(201,164,90,.28)}
+/* --- B 風格：卡片 --- */
+html.dl .admin96-card,html.dl .admin96-stat,html.dl .member-command-card,html.dl .booking-composer,html.dl .member-schedule-panel,html.dl .talent-person-card,html.dl .talent-resume-card,html.dl .profile-inline-card,html.dl .attendance-card,html.dl .week-date-card,html.dl .talent-booking-group,html.dl .dashboard-week-strip,html.dl .dashboard-quick-actions,html.dl .operations-hub>button,html.dl .preview-pick,html.dl .hotel-record-card,html.dl .talent-left-card,html.dl .left-talent-section,html.dl .application-card,html.dl .admin-unified-head,html.dl .member-empty-state,html.dl .member-empty-lux,html.dl .approval-box,html.dl .schedule-week-summary,html.dl .member-booking-week-groups .booking-week-group,html.dl .profile-editor-card,html.dl .admin-bank-card,html.dl .leave-modal,html.dl .manager-drawer,html.dl .member-announcement-ticker,html.dl .preview-bar{
+  background:#fffdf9!important;background-image:none!important;border:1px solid rgba(34,29,24,.07)!important;box-shadow:0 1px 0 rgba(34,29,24,.03),0 12px 32px rgba(108,86,50,.08)!important}
+html.dl .admin96-stat::before,html.dl .admin96-stat::after,html.dl .member-command-card::before,html.dl .member-command-card::after,html.dl .booking-composer::before,html.dl .booking-composer::after,html.dl .talent-resume-card::before,html.dl .talent-resume-card::after,html.dl .admin96-card::before,html.dl .admin96-card::after{display:none!important}
+html.dl .member-command-card{border-radius:24px!important}
+html.dl .week-date-card.is-today,html.dl .profile-recent-row.is-today{border-color:rgba(201,164,90,.55)!important;box-shadow:0 0 0 3px rgba(201,164,90,.12),0 12px 32px rgba(108,86,50,.08)!important}
+/* 卡片內次層（淺米色） */
+html.dl .member-glance,html.dl .profile-recent-row,html.dl .record,html.dl .week-talent-row,html.dl .admin96-ops>div,html.dl .application-field,html.dl .attendance-stats>div,html.dl .profile-month-strip>div,html.dl .weekly-booking-notice,html.dl .schedule-refresh-note,html.dl .resume-mini-stats>div,html.dl .talent-card-glance,html.dl .vip-member-plaque{background:#f8f3ea!important;background-image:none!important;border:1px solid rgba(34,29,24,.05)!important;box-shadow:none!important}
+/* --- 按鈕：主要 = 深色＋香檳金字 --- */
+html.dl .btn-primary,html.dl .confirm-every-pending,html.dl .admin-login-submit,html.dl .cv-primary,html.dl #multiBookingForm button[type=submit],html.dl #profileForm button[type=submit],html.dl .apply107-submit,html.dl #applyForm button[type=submit],html.dl .unified-manual-booking{
+  background:#1c1916!important;background-image:none!important;color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important;border:0!important;box-shadow:0 8px 20px rgba(28,25,22,.16)!important;text-shadow:none!important}
+html.dl .btn-primary:hover,html.dl .confirm-every-pending:hover,html.dl .cv-primary:hover{box-shadow:0 12px 26px rgba(28,25,22,.24)!important;filter:none!important}
+/* 次要按鈕：白底細框 */
+html.dl .mini-btn,html.dl .btn-outline,html.dl .text-btn,html.dl .admin96-tools button,html.dl .admin-preview-link,html.dl .dash-quick-link,html.dl .dashboard-quick-actions button,html.dl .admin-segmented button,html.dl .attendance-year-btn,html.dl .back-talents,html.dl .back-dashboard,html.dl .back-attendance,html.dl .preview-bar a,html.dl .member-logout{
+  background:#fffdf9!important;background-image:none!important;color:#3a332c!important;-webkit-text-fill-color:#3a332c!important;border:1px solid rgba(34,29,24,.14)!important;box-shadow:none!important}
+html.dl .admin-segmented button.active,html.dl .attendance-year-btn.active,html.dl .dl-tabs .auth-tab.active{background:#1c1916!important;color:#e3c78a!important;-webkit-text-fill-color:#e3c78a!important;border-color:#1c1916!important}
+html.dl .mini-btn.danger,html.dl .permanent-delete-talent,html.dl .delete-booking{color:#9a3b3b!important;-webkit-text-fill-color:#9a3b3b!important;border-color:rgba(154,59,59,.3)!important;background:#fffdf9!important}
+/* --- 輸入框 --- */
+html.dl input:not([type=checkbox]):not([type=radio]),html.dl select,html.dl textarea{background:#fbf7f0!important;color:#221d18!important;-webkit-text-fill-color:#221d18;border:1px solid #e3d9c8!important;box-shadow:none!important}
+html.dl input::placeholder,html.dl textarea::placeholder{color:#a39a8f!important;-webkit-text-fill-color:#a39a8f!important}
+html.dl input:focus,html.dl select:focus,html.dl textarea:focus{border-color:#c9a45a!important;box-shadow:0 0 0 3px rgba(201,164,90,.18)!important;outline:none}
+html.dl input:disabled,html.dl select:disabled,html.dl textarea:disabled{opacity:.75}
+/* --- 日期選擇 --- */
+html.dl .date-chip span{background:#fffdf9!important;border:1px solid rgba(34,29,24,.12)!important;color:#221d18!important;box-shadow:none!important}
+html.dl .date-chip small{color:#6f665c!important}
+html.dl .date-chip input:checked+span{background:#1c1916!important;border-color:#1c1916!important;color:#e3c78a!important}
+html.dl .date-chip input:checked+span small,html.dl .date-chip input:checked+span b{color:#e3c78a!important}
+html.dl .date-chip.is-booked span{background:#f1ebe0!important;border-style:dashed!important}
+html.dl .date-chip.is-booked small{color:#3f7a50!important}
+/* --- 導覽列 --- */
+html.dl body.admin-body .admin96-sidebar{background:#fffdf9!important;border-right:1px solid rgba(34,29,24,.07)!important}
+html.dl body.admin-body .admin96-topbar{background:rgba(255,253,249,.94)!important;border-bottom:1px solid rgba(34,29,24,.07)!important;backdrop-filter:blur(10px)}
+html.dl body.admin-body .admin96-nav .tab{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+html.dl body.admin-body .admin96-nav .tab.active{background:#f3ead9!important;border-color:rgba(201,164,90,.4)!important}
+html.dl body.admin-body .admin96-nav .tab.active strong,html.dl body.admin-body .admin96-nav .tab.active i{color:#7a5d22!important}
+html.dl body.admin-body .admin96-nav .tab i{background:transparent!important;border-color:rgba(34,29,24,.1)!important;color:#6f665c!important}
+html.dl body.admin-body .admin96-brand-card{background:#f8f3ea!important;border-color:rgba(34,29,24,.06)!important}
+html.dl .site-header{background:rgba(255,253,249,.94)!important;border-bottom:1px solid rgba(34,29,24,.07)!important}
+html.dl .brand-copy b,html.dl .brand-copy span{color:#221d18!important}
+html.dl footer{background:#efe8dc!important;color:#6f665c!important;border-top:1px solid rgba(34,29,24,.06)!important}
+@media (max-width:860px){
+ html.dl body.admin-body .admin96-sidebar{background:rgba(255,253,249,.97)!important;border-right:0!important;border-top:1px solid rgba(34,29,24,.08)!important;box-shadow:0 -8px 24px rgba(108,86,50,.08)}
+ html.dl body.admin-body .admin96-nav .tab.active{background:#f3ead9!important;border:0!important}
+}
+@media (max-width:760px){
+ html.dl body.portal-body .portal-shell .member-nav{background:rgba(255,253,249,.97)!important;border-top:1px solid rgba(34,29,24,.08)!important;box-shadow:0 -8px 24px rgba(108,86,50,.08)}
+ html.dl body.portal-body .portal-shell .member-nav .profile-tab.active{background:#f3ead9!important}
+ html.dl body.portal-body .portal-shell .member-nav .profile-tab.active strong{color:#7a5d22!important}
+}
+/* --- 標題字色 --- */
+html.dl h1,html.dl h2,html.dl h3,html.dl h4{color:#221d18}
+html.dl .eyebrow,html.dl .cv-eyebrow{color:#8a6a2c!important}
+/* --- 狀態標籤 --- */
+html.dl .booking-badge.confirmed,html.dl .talent-card-status.status-active,html.dl .resume-status.status-active{background:#e6f1e8!important;color:#2f6b40!important;border-color:rgba(47,107,64,.2)!important}
+html.dl .booking-badge.pending{background:#f7eedb!important;color:#7a5d22!important;border-color:rgba(122,93,34,.2)!important}
+html.dl .booking-badge.leave,html.dl .booking-badge.cancelled,html.dl .booking-badge.rejected{background:#f6e4e4!important;color:#8a3b3b!important;border-color:rgba(138,59,59,.2)!important}
+html.dl .talent-card-status.status-paused,html.dl .resume-status.status-paused{background:#efe9f6!important;color:#5d4a7a!important}
+html.dl .good{color:#2f6b40!important}html.dl .mid{color:#8a6a2c!important}html.dl .bad{color:#9a3b3b!important}
