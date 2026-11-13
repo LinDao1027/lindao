@@ -141,8 +141,8 @@ function validTalentUsername(v){
 function renderTalentAuth(msg=''){
   el('talentPortal').innerHTML=`
   <div class="portal-auth portal-auth-v79">
-    <div class="portal-auth-brand"><img src="assets/lindao-emblem-transparent.png" alt=""><span>LIN DAO ENTERTAINMENT</span></div>
-    <div class="portal-intro"><p class="eyebrow">PRIVATE MEMBER ACCESS · V10.45</p><h1>公關專區</h1><p>專屬會員登入。完成報班、查看班表、公告與個人資料。</p></div>
+    <div class="portal-auth-brand"><img src="assets/lindao-emblem-transparent.png" alt=""><span>ENTERTAINMENT</span></div>
+    <div class="portal-intro"><p class="eyebrow">PRIVATE MEMBER ACCESS</p><h1>公關專區</h1><p>專屬會員登入。完成報班、查看班表、公告與個人資料。</p></div>
     <div class="auth-tabs"><button class="auth-tab active" data-mode="login">登入</button><button class="auth-tab" data-mode="signup">第一次註冊</button></div>
     <div id="authBox"></div>
   </div>`;
@@ -218,17 +218,17 @@ async function renderTalentDashboard(p,email){
       <div class="member-command-main">
         <div class="member-command-brand">
           <span class="member-command-line"></span>
-          <p>LIN DAO · PRIVATE MEMBER</p>
+          <p>PRIVATE MEMBER</p>
           <span class="member-command-sparkle">✦</span>
         </div>
         <div class="member-soft-orbit orbit-one"></div>
         <div class="member-soft-orbit orbit-two"></div>
-        <p class="eyebrow">TALENT PORTAL · V10.55</p>
+        <p class="eyebrow">TALENT PORTAL</p>
         <div class="member-name-row">
           <div>
             <span class="member-welcome">PRIVATE MEMBER · ${timeGreeting} ✦</span>
-            <h1>${esc(p.nickname||'未設定暱稱')}<span class="fairy-name-suffix">小仙女，${timeGreeting}</span></h1>
-            <p class="member-soft-caption">今天也照自己的步調，漂亮地完成每一件事。 ♡</p>
+            <h1>${esc(p.nickname||'未設定暱稱')}<span class="fairy-name-suffix">${timeGreeting}</span></h1>
+            <p class="member-soft-caption">今天也辛苦了。班表、公告與個人資料，都已經為妳整理好。</p>
             <div class="member-glance">
               <div><small>TODAY</small><strong>${todayStatusText}</strong></div>
               <span></span>
@@ -260,8 +260,8 @@ async function renderTalentDashboard(p,email){
           </div>
         </div>
         <div class="vip-member-plaque">
-          <p>LIN DAO · PRIVATE MEMBER</p>
-          <strong>${esc(p.nickname||'未設定暱稱')} 小仙女</strong>
+          <p>PRIVATE MEMBER</p>
+          <strong>${esc(p.nickname||'未設定暱稱')}</strong>
           <div><span>MEMBER NO.</span><b>${memberCode}</b></div>
         </div>
       </aside>
@@ -348,6 +348,7 @@ async function renderTalentDashboard(p,email){
     const map={schedule:'talentScheduleSection',profile:'talentProfileSection',hotelcards:'talentHotelCardsSection'};
     if(el(map[section]))el(map[section]).style.display='block';
     if(section==='hotelcards')await renderTalentHotelCards(p);
+    if(window.matchMedia('(max-width: 760px)').matches){const target=el(map[section]);if(target)window.scrollTo({top:target.getBoundingClientRect().top+scrollY-80,behavior:'smooth'})}
     if(TALENT_PREVIEW)el('talentPortal').querySelectorAll('.portal-shell input,.portal-shell select,.portal-shell textarea').forEach(i=>{if(!i.closest('.preview-bar'))i.disabled=true});
   });
   if(approved){
@@ -396,7 +397,7 @@ async function renderTalentHotelCards(p){
     const dateB=String(b.card_on_date||b.created_at||'');
     return dateB.localeCompare(dateA);
   });
-  host.innerHTML=`<section class="hotel-record-page"><div class="member-section-heading"><div><p class="eyebrow">PRIVATE CAREER ARCHIVE</p><h2>酒店上下卡紀錄</h2><p class="panel-note">上卡中的合作會優先置頂，歷史紀錄依日期排序。</p></div><span class="member-count">${rows.length} 筆</span></div><div class="hotel-record-grid">${rows.map((x,i)=>`<article class="hotel-record-card hotel-status-${esc((x.status||'record').replace(/\s+/g,'-'))}"><div class="hotel-card-index">${String(i+1).padStart(2,'0')}</div><div class="hotel-card-top"><div class="hotel-record-mark"><span>✦</span></div><div class="hotel-card-title"><small>LIN DAO · PRIVATE RECORD</small><h3>${esc(x.venue)}</h3></div><span class="hotel-record-status">${esc(x.status||'曾上卡')}</span></div><div class="hotel-record-meta"><div><span>上卡日期</span><strong>${esc(x.card_on_date||'未紀錄')}</strong></div><i></i><div><span>下卡日期</span><strong>${esc(x.card_off_date||'未紀錄')}</strong></div></div>${x.note?`<div class="hotel-record-note"><span>PRIVATE NOTE</span><p>${esc(x.note)}</p></div>`:''}<div class="hotel-card-signature"><span>LIN DAO ENTERTAINMENT</span><b>PRIVATE ARCHIVE</b></div></article>`).join('')||'<div class="member-empty-lux"><strong>目前沒有酒店上下卡紀錄</strong><p>經紀新增曾上卡店家後會顯示在這裡。</p></div>'}</div></section>`;
+  host.innerHTML=`<section class="hotel-record-page"><div class="member-section-heading"><div><p class="eyebrow">PRIVATE CAREER ARCHIVE</p><h2>酒店上下卡紀錄</h2><p class="panel-note">上卡中的合作會優先置頂，歷史紀錄依日期排序。</p></div><span class="member-count">${rows.length} 筆</span></div><div class="hotel-record-grid">${rows.map((x,i)=>`<article class="hotel-record-card hotel-status-${esc((x.status||'record').replace(/\s+/g,'-'))}"><div class="hotel-card-index">${String(i+1).padStart(2,'0')}</div><div class="hotel-card-top"><div class="hotel-record-mark"><span>✦</span></div><div class="hotel-card-title"><small>PRIVATE RECORD</small><h3>${esc(x.venue)}</h3></div><span class="hotel-record-status">${esc(x.status||'曾上卡')}</span></div><div class="hotel-record-meta"><div><span>上卡日期</span><strong>${esc(x.card_on_date||'未紀錄')}</strong></div><i></i><div><span>下卡日期</span><strong>${esc(x.card_off_date||'未紀錄')}</strong></div></div>${x.note?`<div class="hotel-record-note"><span>PRIVATE NOTE</span><p>${esc(x.note)}</p></div>`:''}<div class="hotel-card-signature"><span>林刀娛樂</span><b>PRIVATE ARCHIVE</b></div></article>`).join('')||'<div class="member-empty-lux"><strong>目前沒有酒店上下卡紀錄</strong><p>經紀新增曾上卡店家後會顯示在這裡。</p></div>'}</div></section>`;
 }
 
 async function bindTalentSelfStatus(p,email){
@@ -846,7 +847,7 @@ function bookingComposer(p,venues,pastRows=[]){
     <form id="multiBookingForm">
       <div class="date-grid weekly-date-grid">${dates.map(x=>{const done=alreadyBooked.has(x.iso);return `<label class="date-chip ${done?'disabled is-booked':''}">
         <input type="checkbox" name="dates" value="${x.iso}" ${done?'disabled':''}>
-        <span><b>${weekNames[x.date.getDay()]}</b><small>${done?'已報班 ✓':twDate(x.iso)}</small></span>
+        <span><b>${weekNames[x.date.getDay()]}</b><small>${done?'已報班 ✓':`${x.date.getMonth()+1}/${x.date.getDate()}`}</small></span>
       </label>`}).join('')}</div>
       <div class="booking-quick-row"><button type="button" class="mini-btn pick-all-days">全選可報的日子</button><button type="button" class="mini-btn clear-days">清除</button></div>
       <div class="booking-fields booking-fields-simple">
@@ -938,11 +939,11 @@ function renderAdminLogin(msg=''){
    <section class="admin-login-shell">
      <div class="admin-login-brand">
        <img src="assets/lindao-emblem-transparent.png" alt="">
-       <div><span>LIN DAO ENTERTAINMENT</span><strong>林刀娛樂</strong></div>
+       <div><span>ENTERTAINMENT</span><strong>林刀娛樂</strong></div>
      </div>
 
      <div class="admin-login-copy">
-       <p class="eyebrow">EXECUTIVE ACCESS · V10.45</p>
+       <p class="eyebrow">EXECUTIVE ACCESS</p>
        <h1>經紀管理中心</h1>
        <p>僅限已授權管理員登入。內部班務、公關資料與營運資訊皆受權限保護。</p>
      </div>
@@ -982,7 +983,7 @@ function renderAdminShell(email){
    <aside class="admin96-sidebar">
      <div class="admin96-logo">
        <img src="assets/lindao-emblem-transparent.png" alt="">
-       <div><strong>林刀娛樂</strong><small>LIN DAO ENTERTAINMENT</small></div>
+       <div><strong>林刀娛樂</strong><small>ENTERTAINMENT</small></div>
      </div>
      <nav class="admin96-nav">
        ${nav.map((x,i)=>`<button data-tab="${x[0]}" class="tab ${i?'':'active'}"><i>${x[3]}</i><span><strong>${x[1]}</strong><small>${x[2]}</small></span><b>›</b></button>`).join('')}
