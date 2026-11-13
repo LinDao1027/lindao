@@ -11718,3 +11718,10 @@ html.dl .manual-week-toolbar .manual-week-title{grid-column:1/-1;grid-row:1;text
 html.dl .manual-week-toolbar .manual-week-actions{display:contents!important}
 html.dl .manual-week-toolbar .mini-btn{width:100%!important;min-width:0!important;padding:10px 6px!important;white-space:nowrap}
 html.dl body.portal-body .talent-self-status{width:max-content!important;max-width:100%}
+html.dl body.portal-body .booking-week-head small{color:#7d6729!important}
+html.dl body.portal-body .booking-week-head span{color:#5f574e!important}
+html.dl body.portal-body .bank-account-divider{color:#6a5f54!important}
+html.dl body footer span,html.dl body footer small{color:#6a5f54!important}
+html.dl body.form-body .apply107-submit small{color:#7d6729!important}
+html.dl body.form-body .apply107-submit strong{color:#221d18!important}
+html.dl .dl-foot{color:#6a5f54!important}
